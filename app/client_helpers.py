@@ -16,3 +16,10 @@ def create_new_client(data, client_data):
 
     data.append(result)
     return result
+
+def find_client_by_id(data,client_id):
+    for client in data:
+        if client['id'] == client_id:
+            return client
+
+    return None
