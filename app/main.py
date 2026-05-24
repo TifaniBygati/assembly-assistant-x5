@@ -2,7 +2,7 @@ from fastapi import FastAPI,HTTPException
 from app.local_base import data
 from app.schemas import ClientCreate, ClientUpdate
 from app.search_helpers import find_clients_by_address
-from app.client_helpers import create_new_client,find_client_by_id,update_client
+from app.client_helpers import create_new_client,find_client_by_id,update_client,delete_client
 
 app = FastAPI()
 
@@ -44,6 +44,17 @@ def update_client_by_id(
         new_client_data:ClientUpdate
 ):
     result = update_client(data, client_id,new_client_data)
+
+    if result is None:
+        raise HTTPException(status_code=404,detail="client_not_found")
+
+    return result
+
+@app.delete("/clients/{client_id}")
+def delete_client_by_id(
+        client_id:int
+):
+    result = delete_client(data,client_id)
 
     if result is None:
         raise HTTPException(status_code=404,detail="client_not_found")
