@@ -49,3 +49,12 @@ def update_client(data, client_id,new_client_data):
         client['comment'] = new_client_data.comment
 
     return client
+
+def delete_client(data, client_id):
+    client = find_client_by_id(data,client_id)
+
+    if client is None:
+        return None
+
+    data.remove(client)
+    return client
