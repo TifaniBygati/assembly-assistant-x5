@@ -1,9 +1,11 @@
+import json
 from fastapi import FastAPI,HTTPException
-from app.local_base import data
 from app.schemas import ClientCreate, ClientUpdate
 from app.search_helpers import find_clients_by_address
 from app.client_helpers import create_new_client,find_client_by_id,update_client,delete_client
 
+with open("./data/database.json","r",encoding="utf-8") as file:
+    data = json.load(file)
 app = FastAPI()
 
 @app.get("/health")
