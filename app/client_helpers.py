@@ -23,3 +23,29 @@ def find_client_by_id(data,client_id):
             return client
 
     return None
+
+def update_client(data, client_id,new_client_data):
+    client = find_client_by_id(data,client_id)
+
+    if client is None:
+        return None
+
+    if new_client_data.order_id is not None:
+        client['order_id'] = new_client_data.order_id
+
+    if new_client_data.street is not None:
+        client['street'] = new_client_data.street
+
+    if new_client_data.house is not None:
+        client['house'] = new_client_data.house
+
+    if new_client_data.apartment is not None:
+        client['apartment'] = new_client_data.apartment
+
+    if new_client_data.phone is not None:
+        client['phone'] = new_client_data.phone
+
+    if new_client_data.comment is not None:
+        client['comment'] = new_client_data.comment
+
+    return client

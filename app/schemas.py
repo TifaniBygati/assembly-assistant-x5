@@ -7,3 +7,11 @@ class ClientCreate(BaseModel):
     apartment: str
     phone: str
     comment: str | None = None
+
+class ClientUpdate(BaseModel):
+    order_id: str | None = None
+    street: str | None = None
+    house: str | None = None
+    apartment: str | None = None
+    phone: str | None = None
+    comment: str | None = None

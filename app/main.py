@@ -1,8 +1,8 @@
 from fastapi import FastAPI,HTTPException
 from app.local_base import data
-from app.schemas import ClientCreate
+from app.schemas import ClientCreate, ClientUpdate
 from app.search_helpers import find_clients_by_address
-from app.client_helpers import create_new_client,find_client_by_id
+from app.client_helpers import create_new_client,find_client_by_id,update_client
 
 app = FastAPI()
 
@@ -34,6 +34,18 @@ def get_client_by_id(
     result = find_client_by_id(data,client_id)
 
     if result == None:
+        raise HTTPException(status_code=404,detail="client_not_found")
+
+    return result
+
+@app.patch("/clients/{client_id}")
+def update_client_by_id(
+        client_id:int,
+        new_client_data:ClientUpdate
+):
+    result = update_client(data, client_id,new_client_data)
+
+    if result is None:
         raise HTTPException(status_code=404,detail="client_not_found")
 
     return result
