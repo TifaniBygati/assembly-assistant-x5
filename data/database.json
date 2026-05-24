@@ -1,0 +1,110 @@
+[
+    {
+        "id": 1,
+        "order_id": "random-order-123",
+        "street": "Пушкина",
+        "house": "7",
+        "apartment": "17",
+        "phone": "+79990000000",
+        "comment": "домофон не работает"
+    },
+    {
+        "id": 2,
+        "order_id": "random-order-456",
+        "street": "Ленина",
+        "house": "10",
+        "apartment": "25",
+        "phone": "+79990000001",
+        "comment": "оставить у двери"
+    },
+    {
+        "id": 3,
+        "order_id": "random-order-789",
+        "street": "Ленина",
+        "house": "10",
+        "apartment": "42",
+        "phone": "+79990000002",
+        "comment": "позвонить за 5 минут"
+    },
+    {
+        "id": 4,
+        "order_id": "random-order-321",
+        "street": "Ленина",
+        "house": "12",
+        "apartment": "8",
+        "phone": "+79990000003",
+        "comment": "код домофона 1234"
+    },
+    {
+        "id": 5,
+        "order_id": "random-order-654",
+        "street": "Пушкина",
+        "house": "7",
+        "apartment": "21",
+        "phone": "+79990000004",
+        "comment": "не звонить в домофон"
+    },
+    {
+        "id": 6,
+        "order_id": "random-order-987",
+        "street": "Пушкина",
+        "house": "9",
+        "apartment": "3",
+        "phone": "+79990000005",
+        "comment": "передать лично в руки"
+    },
+    {
+        "id": 7,
+        "order_id": "random-order-147",
+        "street": "Советская",
+        "house": "5",
+        "apartment": "11",
+        "phone": "+79990000006",
+        "comment": "подъезд со двора"
+    },
+    {
+        "id": 8,
+        "order_id": "random-order-258",
+        "street": "Советская",
+        "house": "5",
+        "apartment": "12",
+        "phone": "+79990000007",
+        "comment": "оставить у консьержа"
+    },
+    {
+        "id": 9,
+        "order_id": "random-order-369",
+        "street": "Советская",
+        "house": "6",
+        "apartment": "30",
+        "phone": "+79990000008",
+        "comment": "клиент просил не звонить после 22:00"
+    },
+    {
+        "id": 10,
+        "order_id": "random-order-741",
+        "street": "Гагарина",
+        "house": "1",
+        "apartment": "5",
+        "phone": "+79990000009",
+        "comment": "нет лифта"
+    },
+    {
+        "id": 11,
+        "order_id": "random-order-852",
+        "street": "Гагарина",
+        "house": "1",
+        "apartment": "6",
+        "phone": "+79990000010",
+        "comment": "оставить пакет у двери"
+    },
+    {
+        "id": 12,
+        "order_id": "random-order-963",
+        "street": "Гагарина",
+        "house": "2",
+        "apartment": "14",
+        "phone": "+79990000011",
+        "comment": "позвонить только по телефону"
+    }
+]
