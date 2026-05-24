@@ -1,11 +1,12 @@
-import json
 from fastapi import FastAPI,HTTPException
+
 from app.schemas import ClientCreate, ClientUpdate
 from app.search_helpers import find_clients_by_address
 from app.client_helpers import create_new_client,find_client_by_id,update_client,delete_client
 
-with open("./data/database.json","r",encoding="utf-8") as file:
-    data = json.load(file)
+from data.json_storage import load_data,save_data
+
+data = load_data()
 app = FastAPI()
 
 @app.get("/health")
@@ -26,7 +27,7 @@ def search_clients(street=None, house=None, apartment=None):
 def create_client(client_data: ClientCreate):
 
     result = create_new_client(data,client_data)
-
+    save_data(data)
     return result
 
 @app.get("/clients/{client_id}")
@@ -49,7 +50,7 @@ def update_client_by_id(
 
     if result is None:
         raise HTTPException(status_code=404,detail="client_not_found")
-
+    save_data(data)
     return result
 
 @app.delete("/clients/{client_id}")
@@ -60,5 +61,5 @@ def delete_client_by_id(
 
     if result is None:
         raise HTTPException(status_code=404,detail="client_not_found")
-
+    save_data(data)
     return result
