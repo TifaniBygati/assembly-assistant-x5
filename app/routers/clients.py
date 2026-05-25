@@ -2,7 +2,7 @@ from fastapi import APIRouter,HTTPException
 
 from app.schemas import ClientCreate, ClientUpdate
 from app.search_helpers import find_clients_by_address
-from app.client_service import create_new_client,find_client_by_id,update_client,delete_client
+from app.client_service import create_new_client,find_client_by_id,update_client,delete_client,replace_client
 
 from data.json_storage import load_data,save_data
 
@@ -50,6 +50,21 @@ def update_client_by_id(
         raise HTTPException(status_code=404,detail="client_not_found")
     save_data(data)
     return result
+
+@router.put("/{client_id}")
+def update_client_full(
+        client_data: ClientCreate,
+        client_id:int
+):
+    result = replace_client(data,client_id,client_data)
+
+    if result is None:
+        raise HTTPException(status_code=404,detail="client_not_found")
+
+    save_data(data)
+
+    return result
+
 
 @router.delete("/{client_id}")
 def delete_client_by_id(
