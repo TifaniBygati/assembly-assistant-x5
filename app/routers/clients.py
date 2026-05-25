@@ -34,7 +34,7 @@ def get_client_by_id(
 ):
     result = find_client_by_id(data,client_id)
 
-    if result == None:
+    if result is None:
         raise HTTPException(status_code=404,detail="client_not_found")
 
     return result
