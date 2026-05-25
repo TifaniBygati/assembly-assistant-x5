@@ -58,3 +58,17 @@ def delete_client(data, client_id):
 
     data.remove(client)
     return client
+
+def replace_client(data, client_id,client_data):
+
+    client = find_client_by_id(data,client_id)
+
+    if client is None:
+        return None
+
+    new_data = client_data.model_dump()
+
+    client.update(new_data)
+
+    return client
+
