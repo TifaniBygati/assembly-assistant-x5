@@ -6,6 +6,7 @@ from app.client_service import create_new_client,find_client_by_id,update_client
 
 from data.json_storage import load_data,save_data
 
+from app.sqlite_service import get_all_clients_from_db
 
 router = APIRouter(prefix="/clients", tags=["clients"])
 
@@ -13,7 +14,10 @@ data = load_data()
 
 @router.get("")
 def get_all_clients():
-    return data
+
+    result = get_all_clients_from_db()
+
+    return result
 
 @router.get("/search")
 def search_clients(street=None, house=None, apartment=None):
