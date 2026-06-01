@@ -1,10 +1,14 @@
 import sqlite3
 
-from data.json_storage import load_data_for_migrate
+from data.json_storage import load_data
 
-DB_PATH = "../data/clients.db"
+from pathlib import Path
 
-data = load_data_for_migrate()
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+DB_PATH = PROJECT_ROOT / 'data' / 'clients.db'
+
+data = load_data()
 
 db = sqlite3.connect(DB_PATH)
 cursor = db.cursor()
