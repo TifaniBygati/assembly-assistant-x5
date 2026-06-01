@@ -23,3 +23,20 @@ def get_all_clients_from_db():
     db.close()
 
     return [dict(row) for row in rows]
+
+def get_client_by_id_from_db(client_id):
+
+    db = load_database()
+
+    cursor = db.cursor()
+
+    cursor.execute('SELECT * FROM clients WHERE id = ?;', (client_id,))
+
+    row = cursor.fetchone()
+
+    db.close()
+
+    if row is None:
+        return None
+
+    return dict(row)
