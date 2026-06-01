@@ -1,10 +1,10 @@
 import sqlite3
 
-from data.json_storage import load_data
+from data.json_storage import load_data_for_migrate
 
 DB_PATH = "../data/clients.db"
 
-data = load_data()
+data = load_data_for_migrate()
 
 db = sqlite3.connect(DB_PATH)
 cursor = db.cursor()
