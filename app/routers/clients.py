@@ -6,7 +6,7 @@ from app.client_service import create_new_client,find_client_by_id,update_client
 
 from data.json_storage import load_data,save_data
 
-from app.sqlite_service import get_all_clients_from_db
+from app.sqlite_service import get_all_clients_from_db, get_client_by_id_from_db
 
 router = APIRouter(prefix="/clients", tags=["clients"])
 
@@ -36,7 +36,7 @@ def create_client(client_data: ClientCreate):
 def get_client_by_id(
         client_id:int
 ):
-    result = find_client_by_id(data,client_id)
+    result = get_client_by_id_from_db(client_id)
 
     if result is None:
         raise HTTPException(status_code=404,detail="client_not_found")
