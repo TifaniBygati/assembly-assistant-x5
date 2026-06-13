@@ -13,8 +13,8 @@ cursor = db.cursor()
 
 cursor.execute('PRAGMA foreign_keys = ON;')
 
-cursor.execute('DROP TABLE addresses')
-cursor.execute('DROP TABLE clients')
+cursor.execute('DROP TABLE IF EXISTS addresses')
+cursor.execute('DROP TABLE IF EXISTS clients')
 
 cursor.execute('''
     CREATE TABLE clients (
@@ -44,9 +44,6 @@ db.commit()
 
 try:
     cursor.execute('BEGIN')
-
-    cursor.execute('DELETE FROM addresses;')
-    cursor.execute('DELETE FROM clients;')
 
     for row in data:
 
