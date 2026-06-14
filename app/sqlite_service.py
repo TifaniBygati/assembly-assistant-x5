@@ -8,6 +8,8 @@ DB_PATH = SRC_MAIN_DIR / 'data' / 'clients.db'
 def load_database():
     db = sqlite3.connect(DB_PATH)
     db.row_factory = sqlite3.Row
+    cursor = db.cursor()
+    cursor.execute('PRAGMA foreign_keys = ON;')
     return db
 
 def get_all_clients_from_db():
@@ -16,7 +18,20 @@ def get_all_clients_from_db():
 
     cursor = db.cursor()
 
-    cursor.execute('SELECT * FROM clients;')
+    cursor.execute('''
+                   SELECT 
+                    c.id AS client_id,
+                    c.name,
+                    c.phone,
+                    a.id AS address_id,
+                    a.street,
+                    a.house,
+                    a.floor,
+                    a.entrance,
+                    a.apartment,
+                    a.comment
+                   FROM clients AS c
+                   LEFT JOIN addresses AS a ON c.id = a.client_id''')
 
     rows = cursor.fetchall()
 
@@ -30,16 +45,30 @@ def get_client_by_id_from_db(client_id):
 
     cursor = db.cursor()
 
-    cursor.execute('SELECT * FROM clients WHERE id = ?;', (client_id,))
+    cursor.execute('''
+                   SELECT 
+                    c.id AS client_id,
+                    c.name,
+                    c.phone,
+                    a.id AS address_id,
+                    a.street,
+                    a.house,
+                    a.floor,
+                    a.entrance,
+                    a.apartment,
+                    a.comment
+                   FROM clients AS c
+                   LEFT JOIN addresses AS a ON c.id = a.client_id
+                   WHERE c.id = ?''', (client_id,))
 
-    row = cursor.fetchone()
+    rows = cursor.fetchall()
 
     db.close()
 
-    if row is None:
+    if not rows:
         return None
 
-    return dict(row)
+    return [dict(row) for row in rows]
 
 def find_clients_by_address_from_db(street=None, house=None, apartment=None):
 
@@ -55,7 +84,7 @@ def find_clients_by_address_from_db(street=None, house=None, apartment=None):
     for key, value in check.items():
         if value is not None:
             params.append(value)
-            info.append(f'{key} = ?')
+            info.append(f'a.{key} = ?')
 
     if not info:
         return []
@@ -64,7 +93,22 @@ def find_clients_by_address_from_db(street=None, house=None, apartment=None):
 
     cursor = db.cursor()
 
-    sql = 'SELECT * FROM clients ' + 'WHERE ' + ' AND '.join(info)
+    sql = '''
+                    SELECT 
+                    c.id AS client_id,
+                    c.name,
+                    c.phone,
+                    a.id AS address_id,
+                    a.street,
+                    a.house,
+                    a.floor,
+                    a.entrance,
+                    a.apartment,
+                    a.comment 
+                    FROM clients AS c
+                    JOIN addresses AS a ON c.id = a.client_id
+                    WHERE ''' + ' AND '.join(info)
+
 
     cursor.execute(sql, params)
 
