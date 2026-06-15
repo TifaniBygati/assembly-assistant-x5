@@ -8,7 +8,7 @@ from app.sqlite_service import (
     patch_and_put_client_by_client_id_from_db,
     find_clients_by_address_from_db,
     create_new_client_from_db,
-    delete_client_by_client_id_from_db
+    delete_client_from_db
 )
 
 router = APIRouter(prefix="/clients", tags=["clients"])
@@ -82,9 +82,9 @@ def update_client_full(
 def delete_client_by_id(
         client_id:int
 ):
-    result = delete_client_by_client_id_from_db(client_id)
+    result = delete_client_from_db(client_id)
 
     if not result:
         raise HTTPException(status_code=404,detail="client_not_found")
 
-    return {'detail':"client_deleted"}
+    return result

@@ -186,23 +186,38 @@ def create_new_client_from_db(client_data):
 
 
 
-def delete_client_by_client_id_from_db(client_id):
-
+def delete_client_from_db(client_id):
     db = load_database()
 
     cursor = db.cursor()
 
-    sql = 'DELETE FROM clients WHERE id = ?;'
+    try:
+        cursor.execute('BEGIN')
 
-    cursor.execute(sql, (client_id,))
+        cursor.execute('SELECT id FROM clients WHERE id = ?', (client_id,))
 
-    db.commit()
+        result = cursor.fetchone()
 
-    row = cursor.rowcount
+        if result is None:
+            db.rollback()#
+            return None
 
-    db.close()
 
-    return row > 0
+        cursor.execute('DELETE FROM addresses WHERE client_id = ?', (client_id,))
+
+        cursor.execute('DELETE FROM clients WHERE id = ?', (client_id,))
+
+        db.commit()
+
+        return {'deleted': True, 'client_id': client_id}
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
 
 def patch_and_put_client_by_client_id_from_db(client_id, client_data):
     info = []
