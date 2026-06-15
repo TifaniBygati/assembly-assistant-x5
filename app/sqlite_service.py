@@ -182,10 +182,6 @@ def create_new_client_from_db(client_data):
     finally:
         db.close()
 
-
-
-
-
 def delete_client_from_db(client_id):
     db = load_database()
 
@@ -202,7 +198,6 @@ def delete_client_from_db(client_id):
             db.rollback()#
             return None
 
-
         cursor.execute('DELETE FROM addresses WHERE client_id = ?', (client_id,))
 
         cursor.execute('DELETE FROM clients WHERE id = ?', (client_id,))
@@ -218,6 +213,71 @@ def delete_client_from_db(client_id):
     finally:
         db.close()
 
+def client_address_update(address_id,client_data):
+
+    db = load_database()
+
+    cursor = db.cursor()
+
+    try:
+
+        cursor.execute("BEGIN")
+
+        cursor.execute('SELECT id FROM addresses WHERE id = ?', (address_id,))
+
+        result = cursor.fetchone()
+
+        if result is None:
+            db.rollback()
+            return None
+
+        new_params = client_data.model_dump(exclude_none=True)
+
+        params = []
+        info = []
+
+        for z, x in new_params.items():
+            params.append(f'{z} = ?')
+            info.append(x)
+
+        if not info:
+            db.rollback()
+            return None
+
+        sql = 'UPDATE addresses SET ' + ', ' .join(params) + ' WHERE id = ?'
+
+        info.append(address_id)
+
+        cursor.execute(sql, info)
+
+        db.commit()
+
+        cursor.execute('''SELECT 
+            c.id AS client_id,
+            c.name,
+            c.phone,
+            a.id AS address_id,
+            a.street,
+            a.house,
+            a.floor,
+            a.entrance,
+            a.apartment,
+            a.comment
+            FROM addresses AS a 
+            LEFT JOIN clients AS c ON a.client_id = c.id
+            WHERE a.id = ?
+                       ''', (address_id,))
+
+        result = cursor.fetchone()
+
+        return dict(result)
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
 
 def patch_and_put_client_by_client_id_from_db(client_id, client_data):
     info = []

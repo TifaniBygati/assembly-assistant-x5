@@ -1,11 +1,11 @@
 from fastapi import APIRouter,HTTPException
 
-from app.schemas import ClientCreate, ClientUpdate
+from app.schemas import ClientCreate, Client_Address_Update
 
 from app.sqlite_service import (
     get_all_clients_from_db,
     get_client_by_id_from_db,
-    patch_and_put_client_by_client_id_from_db,
+    client_address_update,
     find_clients_by_address_from_db,
     create_new_client_from_db,
     delete_client_from_db
@@ -48,20 +48,20 @@ def get_client_by_id(
 
     return result
 
-@router.patch("/{client_id}")
-def update_client_by_id(
-        client_id: int,
-        client_data: ClientUpdate
+@router.patch("/addresses/{address_id}")
+def update_address_by_id(
+        address_id: int,
+        client_data: Client_Address_Update
 ):
     update_data = client_data.model_dump(exclude_none=True)
 
     if not update_data:
         raise HTTPException(status_code=400, detail="bad_request")
 
-    result = patch_and_put_client_by_client_id_from_db(client_id, client_data)
+    result = client_address_update(address_id, client_data)
 
     if result is None:
-        raise HTTPException(status_code=404, detail="client_not_found")
+        raise HTTPException(status_code=404, detail="address_not_found")
 
     return result
 
