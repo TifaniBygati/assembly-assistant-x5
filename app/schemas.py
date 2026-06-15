@@ -1,12 +1,18 @@
 from pydantic import BaseModel
 
 class ClientCreate(BaseModel):
-    order_id: str
+    name: str | None = None
+    phone: str
     street: str
     house: str
-    apartment: str
-    phone: str
+    floor: str | None = None
+    entrance: str | None = None
+    apartment: str | None = None
     comment: str | None = None
+
+
+
+
 
 class ClientUpdate(BaseModel):
     order_id: str | None = None

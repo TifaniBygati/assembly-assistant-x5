@@ -124,28 +124,67 @@ def create_new_client_from_db(client_data):
 
     cursor = db.cursor()
 
-    sql = 'INSERT INTO clients (order_id, street, house, apartment, phone, comment) VALUES (?, ?, ?, ?, ?, ?);'
+    try:
+        cursor.execute('BEGIN')
 
-    cursor.execute(sql, (
-        client_data.order_id,
-        client_data.street,
-        client_data.house,
-        client_data.apartment,
-        client_data.phone,
-        client_data.comment
-    ))
+        cursor.execute('SELECT id FROM clients WHERE phone = ?', (client_data.phone, ))
 
-    db.commit()
+        result = cursor.fetchone()
 
-    last_id = cursor.lastrowid
+        if result is None:
+            cursor.execute('INSERT INTO clients (name, phone) VALUES (?, ?)',(client_data.name, client_data.phone))
 
-    cursor.execute('SELECT * FROM clients WHERE id = ?;', (last_id,))
+            client_id = cursor.lastrowid
+        else:
+            client_id = result['id']
 
-    row = cursor.fetchone()
+        comment = client_data.comment or ''
 
-    db.close()
+        cursor.execute('INSERT INTO addresses (client_id, street, house, floor, entrance, apartment, comment)'
+                       'VALUES (?,?,?,?,?,?,?)',(
+            client_id,
+            client_data.street,
+            client_data.house,
+            client_data.floor,
+            client_data.entrance,
+            client_data.apartment,
+            comment
+            ))
 
-    return dict(row)
+        address_id_last = cursor.lastrowid
+
+        db.commit()
+        cursor.execute('''
+                       SELECT c.id AS client_id,
+                              c.name,
+                              c.phone,
+                              a.id AS address_id,
+                              a.street,
+                              a.house,
+                              a.floor,
+                              a.entrance,
+                              a.apartment,
+                              a.comment
+                       FROM clients AS c
+                                JOIN addresses AS a ON c.id = a.client_id
+                       WHERE a.id = ?
+                       ''', (address_id_last,))
+
+        row = cursor.fetchone()
+
+        return dict(row)
+
+    except Exception:
+
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+
+
 
 def delete_client_by_client_id_from_db(client_id):
 
