@@ -279,6 +279,55 @@ def client_address_update(address_id,client_data):
     finally:
         db.close()
 
+def client_update_from_db(client_id, client_data):
+
+    db = load_database()
+
+    cursor = db.cursor()
+
+    try:
+
+        cursor.execute('BEGIN')
+
+        cursor.execute('SELECT id FROM clients WHERE id = ?', (client_id,))
+
+        client = cursor.fetchone()
+
+        if client is None:
+            db.rollback()
+            return None
+
+        update_data = client_data.model_dump(exclude_none=True)
+
+        info = []
+        params = []
+
+        for name, value in update_data.items():
+            if value is not None:
+                info.append(f'{name} = ?')
+                params.append(value)
+
+        params.append(client_id)
+
+        sql = '''UPDATE clients SET ''' + ', '.join(info) + ''' WHERE id = ?'''
+
+        cursor.execute(sql, params)
+
+        db.commit()
+
+        cursor.execute('''SELECT id, name, phone FROM clients WHERE id = ?''', (client_id,))
+
+        result = cursor.fetchone()
+
+        return dict(result)
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
 def patch_and_put_client_by_client_id_from_db(client_id, client_data):
     info = []
     params = []

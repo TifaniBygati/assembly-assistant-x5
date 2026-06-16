@@ -10,10 +10,14 @@ class ClientCreate(BaseModel):
     apartment: str | None = None
     comment: str | None = None
 
-class Client_Address_Update(BaseModel):
+class ClientAddressUpdate(BaseModel):
     street: str | None = None
     house: str | None = None
     floor: str | None = None
     entrance: str | None = None
     apartment: str | None = None
     comment: str | None = None
+
+class ClientUpdate(BaseModel):
+    name: str | None = None
+    phone: str | None = None
