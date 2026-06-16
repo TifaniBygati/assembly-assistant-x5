@@ -25,3 +25,11 @@ class ClientUpdatePATCH(BaseModel):
 class ClientUpdatePUT(BaseModel):
     name: str
     phone: str
+
+class AddressPut(BaseModel):
+    street: str
+    house: str
+    floor: str | None = None
+    entrance: str | None = None
+    apartment: str | None = None
+    comment: str | None = None

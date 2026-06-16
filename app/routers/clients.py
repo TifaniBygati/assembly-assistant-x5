@@ -4,6 +4,7 @@ from app.schemas import (ClientCreate,
                          ClientAddressUpdatePATCH,
                          ClientUpdatePATCH,
                          ClientUpdatePUT,
+                         AddressPut
                          )
 
 from app.sqlite_service import (
@@ -14,7 +15,8 @@ from app.sqlite_service import (
     create_new_client_from_db,
     delete_client_from_db,
     client_update_from_db,
-    client_put_db
+    client_put_db,
+    address_put_db
 )
 
 router = APIRouter(prefix="/clients", tags=["clients"])
@@ -96,6 +98,18 @@ def update_client(
 
     if result is None:
         raise HTTPException(status_code=404, detail="client_not_found")
+
+    return result
+
+@router.put("/addresses/{address_id}")
+def update_address(
+        address_data: AddressPut,
+        address_id:int
+):
+    result = address_put_db(address_id, address_data)
+
+    if result is None:
+        raise HTTPException(status_code=404, detail="address_not_found")
 
     return result
 

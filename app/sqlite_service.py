@@ -353,12 +353,79 @@ def client_put_db(client_id, client_data):
         db.commit()
 
         cursor.execute(
-            'SELECT id AS client_id, name, phone FROM clients WHERE id = ?',
+            '''SELECT 
+                   c.id AS client_id,
+                   c.name, c.phone,
+                   a.id AS address_id,
+                   a.street, a.house,
+                   a.floor,
+                   a.entrance,
+                   a.apartment,
+                   a.comment 
+                FROM addresses AS a
+                JOIN clients AS c
+                ON a.client_id = c.id  WHERE a.id = ?''',
             (client_id,))
 
         result = cursor.fetchone()
 
         return dict(result)
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+def address_put_db(address_id, address_data):
+    db = load_database()
+
+    cursor = db.cursor()
+
+    try:
+
+        cursor.execute('BEGIN')
+
+        cursor.execute('SELECT id FROM addresses WHERE id = ?', (address_id,))
+
+        result = cursor.fetchone()
+        if result is None:
+            db.rollback()
+            return None
+
+        comment = address_data.comment or ''
+
+        cursor.execute('''UPDATE addresses 
+                          SET street = ?, 
+                              house = ?, 
+                              floor = ?, 
+                              entrance = ?, 
+                              apartment = ?, 
+                              comment = ?  
+                          WHERE id = ?''',
+                       (address_data.street, address_data.house, address_data.floor, address_data.entrance, address_data.apartment, comment, address_id))
+
+        db.commit()
+
+        cursor.execute('''SELECT 
+                              c.id AS client_id, 
+                              c.name, c.phone,
+                              a.id AS address_id,
+                              a.street, a.house,
+                              a.floor,
+                              a.entrance, 
+                              a.apartment,
+                              a.comment 
+                          FROM addresses AS a 
+                                   JOIN clients AS c 
+                                        ON a.client_id = c.id  WHERE a.id = ?''',
+                       (address_id,))
+
+        result = cursor.fetchone()
+
+        return dict(result)
+
 
     except Exception:
         db.rollback()
