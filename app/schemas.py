@@ -10,7 +10,7 @@ class ClientCreate(BaseModel):
     apartment: str | None = None
     comment: str | None = None
 
-class ClientAddressUpdate(BaseModel):
+class ClientAddressUpdatePATCH(BaseModel):
     street: str | None = None
     house: str | None = None
     floor: str | None = None
@@ -18,6 +18,10 @@ class ClientAddressUpdate(BaseModel):
     apartment: str | None = None
     comment: str | None = None
 
-class ClientUpdate(BaseModel):
+class ClientUpdatePATCH(BaseModel):
     name: str | None = None
     phone: str | None = None
+
+class ClientUpdatePUT(BaseModel):
+    name: str
+    phone: str

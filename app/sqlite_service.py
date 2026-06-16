@@ -328,35 +328,41 @@ def client_update_from_db(client_id, client_data):
     finally:
         db.close()
 
-def patch_and_put_client_by_client_id_from_db(client_id, client_data):
-    info = []
-    params = []
-
-    new_data = client_data.model_dump(exclude_none=True)
-
-    for z, x in new_data.items():
-        info.append(f'{z} = ?')
-        params.append(x)
-
-    params.append(client_id)
-
-    sql = 'UPDATE clients SET ' + ', '.join(info) + ' WHERE id = ?;'
-
+def client_put_db(client_id, client_data):
     db = load_database()
+
     cursor = db.cursor()
 
-    cursor.execute(sql, params)
+    try:
 
-    db.commit()
+        cursor.execute('BEGIN')
 
-    if cursor.rowcount == 0:
+        cursor.execute('SELECT id FROM clients WHERE id = ?', (client_id,))
+
+        result = cursor.fetchone()
+
+        if result is None:
+            db.rollback()
+            return None
+
+        cursor.execute(
+            'UPDATE clients SET name = ?, phone = ? WHERE id = ?',
+            (client_data.name, client_data.phone, client_id)
+        )
+
+        db.commit()
+
+        cursor.execute(
+            'SELECT id AS client_id, name, phone FROM clients WHERE id = ?',
+            (client_id,))
+
+        result = cursor.fetchone()
+
+        return dict(result)
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
         db.close()
-        return None
-
-    cursor.execute('SELECT * FROM clients WHERE id = ?;', (client_id,))
-
-    row = cursor.fetchone()
-
-    db.close()
-
-    return dict(row)
