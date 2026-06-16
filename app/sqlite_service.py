@@ -364,7 +364,8 @@ def client_put_db(client_id, client_data):
                    a.comment 
                 FROM addresses AS a
                 JOIN clients AS c
-                ON a.client_id = c.id  WHERE a.id = ?''',
+                ON a.client_id = c.id  
+               WHERE с.id = ?''',
             (client_id,))
 
         result = cursor.fetchone()
