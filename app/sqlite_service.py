@@ -350,25 +350,27 @@ def client_put_db(client_id, client_data):
             (client_data.name, client_data.phone, client_id)
         )
 
-        db.commit()
-
         cursor.execute(
             '''SELECT 
                    c.id AS client_id,
-                   c.name, c.phone,
+                   c.name, 
+                   c.phone,
                    a.id AS address_id,
-                   a.street, a.house,
+                   a.street, 
+                   a.house,
                    a.floor,
                    a.entrance,
                    a.apartment,
-                   a.comment 
+                   a.comment
                 FROM addresses AS a
                 JOIN clients AS c
                 ON a.client_id = c.id  
-               WHERE с.id = ?''',
+               WHERE c.id = ?''',
             (client_id,))
 
         result = cursor.fetchone()
+
+        db.commit()
 
         return dict(result)
 
