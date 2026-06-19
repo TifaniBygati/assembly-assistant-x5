@@ -1,3 +1,64 @@
-# Assembly Assistant X5
+# assembly-assistant-x5
 
-FastAPI training project for storing and retrieving contact information of X5 delivery customers.
+FastAPI-проект для хранения клиентов и адресов доставки.
+
+## Структура данных
+
+Проект использует SQLite.
+
+Основные таблицы:
+
+* `clients` — данные клиента: `id`, `name`, `phone`
+* `addresses` — адреса клиента: `id`, `client_id`, `street`, `house`, `floor`, `entrance`, `apartment`, `comment`
+
+Связь:
+
+`addresses.client_id` ссылается на `clients.id`.
+
+Один клиент может иметь несколько адресов.
+
+## Данные
+
+`data/database.json` используется как seed-файл для первичного создания локальной SQLite базы.
+
+`data/clients.db` создаётся локально миграционным скриптом и не хранится в Git.
+
+## Создание базы данных
+
+Перед запуском API нужно создать локальную SQLite базу:
+
+```bash
+python scripts/migrate_json_to_sqlite.py
+```
+
+Скрипт создаст файл:
+
+```text
+data/clients.db
+```
+
+Внимание: миграционный скрипт пересоздаёт таблицы `clients` и `addresses` из seed JSON.
+
+## Запуск сервера
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Swagger UI:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+## Основные возможности API
+
+* получить всех клиентов
+* получить клиента по id
+* поиск по адресу
+* создать клиента и адрес
+* обновить клиента
+* обновить адрес
+* полностью заменить клиента
+* полностью заменить адрес
+* удалить клиента вместе с его адресами
