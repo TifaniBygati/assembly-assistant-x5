@@ -14,6 +14,3 @@ def test_unknown_get():
     response = client.get("/unknown")
 
     assert response.status_code == 404
-
-test_health()
-test_unknown_get()
