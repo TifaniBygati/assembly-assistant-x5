@@ -1,4 +1,4 @@
-from data.json_storage import load_data
+import json
 import sqlite3
 from pathlib import Path
 
@@ -6,7 +6,12 @@ DIR = Path(__file__).resolve().parent.parent
 
 DATABASE = DIR / 'data' / 'clients.db'
 
-data = load_data()
+JSON_PATH = DIR / 'data' / 'database.json'
+
+with open(JSON_PATH, 'r', encoding='utf-8') as file:
+
+    data = json.load(file)
+
 
 db = sqlite3.connect(DATABASE)
 cursor = db.cursor()
