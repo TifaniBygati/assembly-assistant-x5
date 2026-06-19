@@ -8,6 +8,8 @@ DB_PATH = SRC_MAIN_DIR / 'data' / 'clients.db'
 def load_database():
     db = sqlite3.connect(DB_PATH)
     db.row_factory = sqlite3.Row
+    cursor = db.cursor()
+    cursor.execute('PRAGMA foreign_keys = ON;')
     return db
 
 def get_all_clients_from_db():
@@ -16,7 +18,20 @@ def get_all_clients_from_db():
 
     cursor = db.cursor()
 
-    cursor.execute('SELECT * FROM clients;')
+    cursor.execute('''
+                   SELECT 
+                    c.id AS client_id,
+                    c.name,
+                    c.phone,
+                    a.id AS address_id,
+                    a.street,
+                    a.house,
+                    a.floor,
+                    a.entrance,
+                    a.apartment,
+                    a.comment
+                   FROM clients AS c
+                   LEFT JOIN addresses AS a ON c.id = a.client_id''')
 
     rows = cursor.fetchall()
 
@@ -30,16 +45,30 @@ def get_client_by_id_from_db(client_id):
 
     cursor = db.cursor()
 
-    cursor.execute('SELECT * FROM clients WHERE id = ?;', (client_id,))
+    cursor.execute('''
+                   SELECT 
+                    c.id AS client_id,
+                    c.name,
+                    c.phone,
+                    a.id AS address_id,
+                    a.street,
+                    a.house,
+                    a.floor,
+                    a.entrance,
+                    a.apartment,
+                    a.comment
+                   FROM clients AS c
+                   LEFT JOIN addresses AS a ON c.id = a.client_id
+                   WHERE c.id = ?''', (client_id,))
 
-    row = cursor.fetchone()
+    rows = cursor.fetchall()
 
     db.close()
 
-    if row is None:
+    if not rows:
         return None
 
-    return dict(row)
+    return [dict(row) for row in rows]
 
 def find_clients_by_address_from_db(street=None, house=None, apartment=None):
 
@@ -55,7 +84,7 @@ def find_clients_by_address_from_db(street=None, house=None, apartment=None):
     for key, value in check.items():
         if value is not None:
             params.append(value)
-            info.append(f'{key} = ?')
+            info.append(f'a.{key} = ?')
 
     if not info:
         return []
@@ -64,7 +93,22 @@ def find_clients_by_address_from_db(street=None, house=None, apartment=None):
 
     cursor = db.cursor()
 
-    sql = 'SELECT * FROM clients ' + 'WHERE ' + ' AND '.join(info)
+    sql = '''
+                    SELECT 
+                    c.id AS client_id,
+                    c.name,
+                    c.phone,
+                    a.id AS address_id,
+                    a.street,
+                    a.house,
+                    a.floor,
+                    a.entrance,
+                    a.apartment,
+                    a.comment 
+                    FROM clients AS c
+                    JOIN addresses AS a ON c.id = a.client_id
+                    WHERE ''' + ' AND '.join(info)
+
 
     cursor.execute(sql, params)
 
@@ -80,76 +124,315 @@ def create_new_client_from_db(client_data):
 
     cursor = db.cursor()
 
-    sql = 'INSERT INTO clients (order_id, street, house, apartment, phone, comment) VALUES (?, ?, ?, ?, ?, ?);'
+    try:
+        cursor.execute('BEGIN')
 
-    cursor.execute(sql, (
-        client_data.order_id,
-        client_data.street,
-        client_data.house,
-        client_data.apartment,
-        client_data.phone,
-        client_data.comment
-    ))
+        cursor.execute('SELECT id FROM clients WHERE phone = ?', (client_data.phone, ))
 
-    db.commit()
+        result = cursor.fetchone()
 
-    last_id = cursor.lastrowid
+        if result is None:
+            cursor.execute('INSERT INTO clients (name, phone) VALUES (?, ?)',(client_data.name, client_data.phone))
 
-    cursor.execute('SELECT * FROM clients WHERE id = ?;', (last_id,))
+            client_id = cursor.lastrowid
+        else:
+            client_id = result['id']
 
-    row = cursor.fetchone()
+        comment = client_data.comment or ''
 
-    db.close()
+        cursor.execute('INSERT INTO addresses (client_id, street, house, floor, entrance, apartment, comment)'
+                       'VALUES (?,?,?,?,?,?,?)',(
+            client_id,
+            client_data.street,
+            client_data.house,
+            client_data.floor,
+            client_data.entrance,
+            client_data.apartment,
+            comment
+            ))
 
-    return dict(row)
+        address_id_last = cursor.lastrowid
 
-def delete_client_by_client_id_from_db(client_id):
+        db.commit()
+        cursor.execute('''
+                       SELECT c.id AS client_id,
+                              c.name,
+                              c.phone,
+                              a.id AS address_id,
+                              a.street,
+                              a.house,
+                              a.floor,
+                              a.entrance,
+                              a.apartment,
+                              a.comment
+                       FROM clients AS c
+                                JOIN addresses AS a ON c.id = a.client_id
+                       WHERE a.id = ?
+                       ''', (address_id_last,))
 
-    db = load_database()
+        row = cursor.fetchone()
 
-    cursor = db.cursor()
+        return dict(row)
 
-    sql = 'DELETE FROM clients WHERE id = ?;'
+    except Exception:
 
-    cursor.execute(sql, (client_id,))
+        db.rollback()
+        raise
 
-    db.commit()
-
-    row = cursor.rowcount
-
-    db.close()
-
-    return row > 0
-
-def patch_and_put_client_by_client_id_from_db(client_id, client_data):
-    info = []
-    params = []
-
-    new_data = client_data.model_dump(exclude_none=True)
-
-    for z, x in new_data.items():
-        info.append(f'{z} = ?')
-        params.append(x)
-
-    params.append(client_id)
-
-    sql = 'UPDATE clients SET ' + ', '.join(info) + ' WHERE id = ?;'
-
-    db = load_database()
-    cursor = db.cursor()
-
-    cursor.execute(sql, params)
-
-    db.commit()
-
-    if cursor.rowcount == 0:
+    finally:
         db.close()
-        return None
 
-    cursor.execute('SELECT * FROM clients WHERE id = ?;', (client_id,))
+def delete_client_from_db(client_id):
+    db = load_database()
 
-    row = cursor.fetchone()
+    cursor = db.cursor()
 
-    db.close()
+    try:
+        cursor.execute('BEGIN')
 
-    return dict(row)
+        cursor.execute('SELECT id FROM clients WHERE id = ?', (client_id,))
+
+        result = cursor.fetchone()
+
+        if result is None:
+            db.rollback()#
+            return None
+
+        cursor.execute('DELETE FROM addresses WHERE client_id = ?', (client_id,))
+
+        cursor.execute('DELETE FROM clients WHERE id = ?', (client_id,))
+
+        db.commit()
+
+        return {'deleted': True, 'client_id': client_id}
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+def client_address_update(address_id,client_data):
+
+    db = load_database()
+
+    cursor = db.cursor()
+
+    try:
+
+        cursor.execute("BEGIN")
+
+        cursor.execute('SELECT id FROM addresses WHERE id = ?', (address_id,))
+
+        result = cursor.fetchone()
+
+        if result is None:
+            db.rollback()
+            return None
+
+        new_params = client_data.model_dump(exclude_none=True)
+
+        params = []
+        info = []
+
+        for z, x in new_params.items():
+            params.append(f'{z} = ?')
+            info.append(x)
+
+        if not info:
+            db.rollback()
+            return None
+
+        sql = 'UPDATE addresses SET ' + ', ' .join(params) + ' WHERE id = ?'
+
+        info.append(address_id)
+
+        cursor.execute(sql, info)
+
+        db.commit()
+
+        cursor.execute('''SELECT 
+            c.id AS client_id,
+            c.name,
+            c.phone,
+            a.id AS address_id,
+            a.street,
+            a.house,
+            a.floor,
+            a.entrance,
+            a.apartment,
+            a.comment
+            FROM addresses AS a 
+            LEFT JOIN clients AS c ON a.client_id = c.id
+            WHERE a.id = ?
+                       ''', (address_id,))
+
+        result = cursor.fetchone()
+
+        return dict(result)
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+def client_update_from_db(client_id, client_data):
+
+    db = load_database()
+
+    cursor = db.cursor()
+
+    try:
+
+        cursor.execute('BEGIN')
+
+        cursor.execute('SELECT id FROM clients WHERE id = ?', (client_id,))
+
+        client = cursor.fetchone()
+
+        if client is None:
+            db.rollback()
+            return None
+
+        update_data = client_data.model_dump(exclude_none=True)
+
+        info = []
+        params = []
+
+        for name, value in update_data.items():
+            if value is not None:
+                info.append(f'{name} = ?')
+                params.append(value)
+
+        params.append(client_id)
+
+        sql = '''UPDATE clients SET ''' + ', '.join(info) + ''' WHERE id = ?'''
+
+        cursor.execute(sql, params)
+
+        db.commit()
+
+        cursor.execute('''SELECT id, name, phone FROM clients WHERE id = ?''', (client_id,))
+
+        result = cursor.fetchone()
+
+        return dict(result)
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+def client_put_db(client_id, client_data):
+    db = load_database()
+
+    cursor = db.cursor()
+
+    try:
+
+        cursor.execute('BEGIN')
+
+        cursor.execute('SELECT id FROM clients WHERE id = ?', (client_id,))
+
+        result = cursor.fetchone()
+
+        if result is None:
+            db.rollback()
+            return None
+
+        cursor.execute(
+            'UPDATE clients SET name = ?, phone = ? WHERE id = ?',
+            (client_data.name, client_data.phone, client_id)
+        )
+
+        cursor.execute(
+            '''SELECT 
+                   c.id AS client_id,
+                   c.name, 
+                   c.phone,
+                   a.id AS address_id,
+                   a.street, 
+                   a.house,
+                   a.floor,
+                   a.entrance,
+                   a.apartment,
+                   a.comment
+                FROM addresses AS a
+                JOIN clients AS c
+                ON a.client_id = c.id  
+               WHERE c.id = ?''',
+            (client_id,))
+
+        result = cursor.fetchone()
+
+        db.commit()
+
+        return dict(result)
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+def address_put_db(address_id, address_data):
+    db = load_database()
+
+    cursor = db.cursor()
+
+    try:
+
+        cursor.execute('BEGIN')
+
+        cursor.execute('SELECT id FROM addresses WHERE id = ?', (address_id,))
+
+        result = cursor.fetchone()
+        if result is None:
+            db.rollback()
+            return None
+
+        comment = address_data.comment or ''
+
+        cursor.execute('''UPDATE addresses 
+                          SET street = ?, 
+                              house = ?, 
+                              floor = ?, 
+                              entrance = ?, 
+                              apartment = ?, 
+                              comment = ?  
+                          WHERE id = ?''',
+                       (address_data.street, address_data.house, address_data.floor, address_data.entrance, address_data.apartment, comment, address_id))
+
+        db.commit()
+
+        cursor.execute('''SELECT 
+                              c.id AS client_id, 
+                              c.name, c.phone,
+                              a.id AS address_id,
+                              a.street, a.house,
+                              a.floor,
+                              a.entrance, 
+                              a.apartment,
+                              a.comment 
+                          FROM addresses AS a 
+                                   JOIN clients AS c 
+                                        ON a.client_id = c.id  WHERE a.id = ?''',
+                       (address_id,))
+
+        result = cursor.fetchone()
+
+        return dict(result)
+
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()

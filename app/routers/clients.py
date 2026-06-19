@@ -1,14 +1,22 @@
 from fastapi import APIRouter,HTTPException
 
-from app.schemas import ClientCreate, ClientUpdate
+from app.schemas import (ClientCreate,
+                         ClientAddressUpdatePATCH,
+                         ClientUpdatePATCH,
+                         ClientUpdatePUT,
+                         AddressPut
+                         )
 
 from app.sqlite_service import (
     get_all_clients_from_db,
     get_client_by_id_from_db,
-    patch_and_put_client_by_client_id_from_db,
+    client_address_update,
     find_clients_by_address_from_db,
     create_new_client_from_db,
-    delete_client_by_client_id_from_db
+    delete_client_from_db,
+    client_update_from_db,
+    client_put_db,
+    address_put_db
 )
 
 router = APIRouter(prefix="/clients", tags=["clients"])
@@ -48,32 +56,60 @@ def get_client_by_id(
 
     return result
 
-@router.patch("/{client_id}")
-def update_client_by_id(
-        client_id: int,
-        client_data: ClientUpdate
+@router.patch("/addresses/{address_id}")
+def update_address_by_id(
+        address_id: int,
+        client_data: ClientAddressUpdatePATCH
 ):
     update_data = client_data.model_dump(exclude_none=True)
 
     if not update_data:
         raise HTTPException(status_code=400, detail="bad_request")
 
-    result = patch_and_put_client_by_client_id_from_db(client_id, client_data)
+    result = client_address_update(address_id, client_data)
+
+    if result is None:
+        raise HTTPException(status_code=404, detail="address_not_found")
+
+    return result
+
+@router.patch("/{client_id}")
+def update_client_by_id(client_id: int, client_data: ClientUpdatePATCH):
+
+    update_data = client_data.model_dump(exclude_none=True)
+
+    if not update_data:
+        raise HTTPException(status_code=400, detail="bad_request")
+
+    result = client_update_from_db(client_id, client_data)
 
     if result is None:
         raise HTTPException(status_code=404, detail="client_not_found")
 
     return result
 
+
 @router.put("/{client_id}")
-def update_client_full(
-        client_data: ClientCreate,
+def update_client(
+        client_data: ClientUpdatePUT,
         client_id:int
 ):
-    result = patch_and_put_client_by_client_id_from_db(client_id, client_data)
+    result = client_put_db(client_id, client_data)
 
     if result is None:
-        raise HTTPException(status_code=400, detail="bad_request")
+        raise HTTPException(status_code=404, detail="client_not_found")
+
+    return result
+
+@router.put("/addresses/{address_id}")
+def update_address(
+        address_data: AddressPut,
+        address_id:int
+):
+    result = address_put_db(address_id, address_data)
+
+    if result is None:
+        raise HTTPException(status_code=404, detail="address_not_found")
 
     return result
 
@@ -82,9 +118,9 @@ def update_client_full(
 def delete_client_by_id(
         client_id:int
 ):
-    result = delete_client_by_client_id_from_db(client_id)
+    result = delete_client_from_db(client_id)
 
     if not result:
         raise HTTPException(status_code=404,detail="client_not_found")
 
-    return {'detail':"client_deleted"}
+    return result
