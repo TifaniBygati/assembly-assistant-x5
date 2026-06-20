@@ -1,12 +1,23 @@
+import os
 import sqlite3
 from pathlib import Path
 
 SRC_MAIN_DIR = Path(__file__).resolve().parent.parent
 
-DB_PATH = SRC_MAIN_DIR / 'data' / 'clients.db'
+DEFAULT_DB_PATH = SRC_MAIN_DIR / 'data' / 'clients.db'
+
+
+def get_db_path():
+    env_path = os.getenv('APP_DB_PATH')
+
+    if env_path:
+        return Path(env_path)
+
+    return DEFAULT_DB_PATH
+
 
 def load_database():
-    db = sqlite3.connect(DB_PATH)
+    db = sqlite3.connect(get_db_path())
     db.row_factory = sqlite3.Row
     cursor = db.cursor()
     cursor.execute('PRAGMA foreign_keys = ON;')
