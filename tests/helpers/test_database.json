@@ -1,0 +1,22 @@
+[
+  {
+      "name": "Дима",
+      "phone": "+79990000001",
+      "street": "Гагарина",
+      "house": "1",
+      "floor": "1",
+      "entrance": "1",
+      "apartment": "1",
+      "comment": "оставить пакет у двери"
+  },
+  {
+    "name": "Аля",
+    "phone": "+79990000002",
+    "street": "Гагарина",
+    "house": "1",
+    "floor": "1",
+    "entrance": "1",
+    "apartment": "2",
+    "comment": "Спасибо вам за вашу работу!\uD83D\uDE00"
+  }
+]

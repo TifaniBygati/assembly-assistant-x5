@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 from app.main import app
+from tests.helpers.helpers import create_test_database
 
 client = TestClient(app)
 
@@ -64,3 +65,21 @@ def test_get_client_by_address():
     assert body != []
     assert body[0]['street'] == street
     assert body[0]['house'] == house
+
+def test_clients_from_test_database(monkeypatch):
+    test_database_path = create_test_database()
+
+    monkeypatch.setenv('APP_DB_PATH', str(test_database_path))
+
+    response = client.get('/clients')
+
+    assert response.status_code == 200
+
+    body = response.json()
+    assert isinstance(body, list)
+    assert len(body) == 2
+
+    phones = {client['phone'] for client in body}
+
+    assert phones == {'+79990000001', '+79990000002'}
+
