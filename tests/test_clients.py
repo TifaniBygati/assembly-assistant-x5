@@ -379,3 +379,42 @@ def test_put_address_in_test_database(monkeypatch):
     assert body[0]['entrance'] == payload['entrance']
     assert body[0]['apartment'] == payload['apartment']
     assert body[0]['comment'] == payload['comment']
+
+def test_delete_client_in_test_database(monkeypatch):
+
+    test_database_path = create_test_database()
+
+    monkeypatch.setenv('APP_DB_PATH', str(test_database_path))
+
+    response = client.get('/clients')
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert isinstance(body, list)
+    assert body != []
+
+    client_id = body[0]['client_id']
+
+    response = client.get(f'/clients/{client_id}')
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert isinstance(body, list)
+    assert len(body) == 1
+
+    response = client.delete(f'/clients/{client_id}')
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert isinstance(body, dict)
+    assert body == {'deleted': True, 'client_id': client_id}
+
+    response = client.get(f'/clients/{client_id}')
+
+    assert response.status_code == 404
