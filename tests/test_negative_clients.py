@@ -18,10 +18,10 @@ def test_get_unknown_client_returns_404(monkeypatch):
     assert isinstance(body, list)
     assert body != []
 
-    max_client_id  = max(client_data["client_id"] for client_data in body)
-    unknown_client_id  = max_client_id  + 1
+    max_client_id = max(client_data["client_id"] for client_data in body)
+    unknown_client_id = max_client_id + 1
 
-    response = client.get(f"/clients/{unknown_client_id }")
+    response = client.get(f"/clients/{unknown_client_id}")
 
     assert response.status_code == 404
 
