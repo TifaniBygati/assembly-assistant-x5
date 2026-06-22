@@ -133,3 +133,68 @@ def test_create_client_in_test_database(monkeypatch):
     phones = {client_data['phone'] for client_data in body}
 
     assert payload['phone'] in phones
+
+def test_patch_client_in_test_database(monkeypatch):
+
+    payload = {
+        'name': 'test_patch_name',
+        'phone': 'test_patch_phone',
+    }
+
+    test_database_path = create_test_database()
+
+    monkeypatch.setenv('APP_DB_PATH', str(test_database_path))
+
+    response = client.get('/clients')
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert isinstance(body, list)
+    assert body != []
+
+    client_id = body[0]['client_id']
+
+    response = client.get(f'/clients/{client_id}')
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert isinstance(body, list)
+    assert len(body) == 1
+
+    client_id = body[0]['client_id']
+
+    old_name = body[0]['name']
+    old_phone = body[0]['phone']
+
+    response = client.patch(f'/clients/{client_id}', json=payload)
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert isinstance(body, dict)
+
+    assert body['id'] == client_id
+
+    assert body['name'] != old_name
+    assert body['phone'] != old_phone
+
+    assert body['name'] == payload['name']
+    assert body['phone'] == payload['phone']
+
+    response = client.get(f'/clients/{client_id}')
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert isinstance(body, list)
+
+    assert len(body) == 1
+
+    assert body[0]['name'] == payload['name']
+    assert body[0]['phone'] == payload['phone']
