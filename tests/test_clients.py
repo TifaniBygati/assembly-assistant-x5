@@ -265,3 +265,117 @@ def test_patch_address_in_test_database(monkeypatch):
     assert body[0]['floor'] == payload['floor']
     assert body[0]['entrance'] == payload['entrance']
     assert body[0]['apartment'] == payload['apartment']
+
+def test_put_client_in_test_database(monkeypatch):
+
+    payload = {
+        'name': 'test_put_name',
+        'phone': 'test_put_phone'
+    }
+
+    test_database_path = create_test_database()
+
+    monkeypatch.setenv('APP_DB_PATH', str(test_database_path))
+
+    response = client.get('/clients')
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert isinstance(body, list)
+    assert body != []
+
+    client_id = body[0]['client_id']
+
+    response = client.put(f'/clients/{client_id}', json=payload)
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert isinstance(body, dict)
+
+    assert body['client_id'] == client_id
+    assert body['name'] == payload['name']
+    assert body['phone'] == payload['phone']
+
+    response = client.get(f'/clients/{client_id}')
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert isinstance(body, list)
+    assert len(body) == 1
+
+    assert body[0]['name'] == payload['name']
+    assert body[0]['phone'] == payload['phone']
+
+def test_put_address_in_test_database(monkeypatch):
+
+    payload = {
+        'street': 'Мира',
+        'house': '77',
+        'floor': None,
+        'entrance': None,
+        'apartment': None,
+        'comment': 'частный дом'
+    }
+
+    test_database_path = create_test_database()
+
+    monkeypatch.setenv('APP_DB_PATH', str(test_database_path))
+
+    response = client.get('/clients')
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert isinstance(body, list)
+    assert body != []
+
+    client_id = body[0]['client_id']
+
+    response = client.get(f'/clients/{client_id}')
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert isinstance(body, list)
+    assert len(body) == 1
+
+    address_id = body[0]['address_id']
+
+    response = client.put(f'/clients/addresses/{address_id}', json=payload)
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert isinstance(body, dict)
+
+    assert body['street'] == payload['street']
+    assert body['house'] == payload['house']
+    assert body['comment'] == payload['comment']
+    assert body['floor'] == payload['floor']
+    assert body['entrance'] == payload['entrance']
+    assert body['apartment'] == payload['apartment']
+
+    response = client.get(f'/clients/{client_id}')
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert isinstance(body, list)
+    assert len(body) == 1
+
+    assert body[0]['street'] == payload['street']
+    assert body[0]['house'] == payload['house']
+    assert body[0]['floor'] == payload['floor']
+    assert body[0]['entrance'] == payload['entrance']
+    assert body[0]['apartment'] == payload['apartment']
+    assert body[0]['comment'] == payload['comment']
