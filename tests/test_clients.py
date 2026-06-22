@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 from app.main import app
-from tests.helpers.helpers import create_test_database
+from tests.helpers.helpers import setup_test_database
 
 client = TestClient(app)
 
@@ -67,9 +67,8 @@ def test_get_client_by_address():
     assert body[0]['house'] == house
 
 def test_clients_from_test_database(monkeypatch):
-    test_database_path = create_test_database()
 
-    monkeypatch.setenv('APP_DB_PATH', str(test_database_path))
+    setup_test_database(monkeypatch)
 
     response = client.get('/clients')
 
@@ -84,9 +83,8 @@ def test_clients_from_test_database(monkeypatch):
     assert phones == {'+79990000001', '+79990000002'}
 
 def test_create_client_in_test_database(monkeypatch):
-    test_database_path = create_test_database()
 
-    monkeypatch.setenv('APP_DB_PATH', str(test_database_path))
+    setup_test_database(monkeypatch)
 
     payload = {
         'name': 'Петя',
@@ -141,9 +139,7 @@ def test_patch_client_in_test_database(monkeypatch):
         'phone': 'test_patch_phone',
     }
 
-    test_database_path = create_test_database()
-
-    monkeypatch.setenv('APP_DB_PATH', str(test_database_path))
+    setup_test_database(monkeypatch)
 
     response = client.get('/clients')
 
@@ -209,9 +205,7 @@ def test_patch_address_in_test_database(monkeypatch):
         'apartment':'10'
     }
 
-    test_database_path = create_test_database()
-
-    monkeypatch.setenv('APP_DB_PATH', str(test_database_path))
+    setup_test_database(monkeypatch)
 
     response = client.get('/clients')
 
@@ -273,9 +267,7 @@ def test_put_client_in_test_database(monkeypatch):
         'phone': 'test_put_phone'
     }
 
-    test_database_path = create_test_database()
-
-    monkeypatch.setenv('APP_DB_PATH', str(test_database_path))
+    setup_test_database(monkeypatch)
 
     response = client.get('/clients')
 
@@ -323,9 +315,7 @@ def test_put_address_in_test_database(monkeypatch):
         'comment': 'частный дом'
     }
 
-    test_database_path = create_test_database()
-
-    monkeypatch.setenv('APP_DB_PATH', str(test_database_path))
+    setup_test_database(monkeypatch)
 
     response = client.get('/clients')
 
@@ -382,9 +372,7 @@ def test_put_address_in_test_database(monkeypatch):
 
 def test_delete_client_in_test_database(monkeypatch):
 
-    test_database_path = create_test_database()
-
-    monkeypatch.setenv('APP_DB_PATH', str(test_database_path))
+    setup_test_database(monkeypatch)
 
     response = client.get('/clients')
 

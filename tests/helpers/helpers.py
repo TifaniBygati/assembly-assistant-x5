@@ -86,3 +86,8 @@ def create_test_database():
 
     finally:
         db.close()
+
+def setup_test_database(monkeypatch):
+    test_database_path = create_test_database()
+
+    monkeypatch.setenv('APP_DB_PATH', str(test_database_path))
