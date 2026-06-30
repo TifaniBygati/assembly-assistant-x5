@@ -8,10 +8,7 @@ from app.schemas import (ClientCreate,
                          )
 
 from app.sqlite_service import (
-    get_all_clients_from_db,
-    get_client_by_id_from_db,
     client_address_update,
-    find_clients_by_address_from_db,
     create_new_client_from_db,
     delete_client_from_db,
     client_update_from_db,
@@ -21,6 +18,7 @@ from app.sqlite_service import (
 from app.postgresql_service import (
     get_clients_from_postgres,
     get_client_by_id_from_postgre,
+    search_clients_from_postgres,
 
 )
 router = APIRouter(prefix="/clients", tags=["clients"])
@@ -36,10 +34,13 @@ def get_all_clients():
 
 @router.get("/search")
 def search_clients(street=None, house=None, apartment=None):
-    result = find_clients_by_address_from_db(street=street, house=house, apartment=apartment)
+    result = search_clients_from_postgres(street=street, house=house, apartment=apartment)
+
+    if result is None:
+        raise HTTPException(status_code=400, detail="no_input_params")
 
     if result == []:
-        raise HTTPException(status_code=404,detail="User_not_found")
+        raise HTTPException(status_code=404,detail="client_not_found")
 
     return result
 @router.post("")

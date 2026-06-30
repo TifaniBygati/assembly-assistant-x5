@@ -57,6 +57,48 @@ def get_client_by_id_from_postgre(client_id):
 
             return cursor.fetchall()
 
+def search_clients_from_postgres(street=None, house=None, apartment=None):
+
+    input_params = {
+        'street': street,
+        'house': house,
+        'apartment': apartment,
+    }
+
+    conditions = []
+    params = []
+
+    for param_name, param_value in input_params.items():
+        if param_value is not None:
+            conditions.append(f'a.{param_name} = %s')
+            params.append(param_value)
+
+    if not conditions:
+        return None
+
+    sql_req = '''
+            SELECT 
+                c.id AS client_id,
+                c.name,
+                c.phone,
+                a.id AS address_id,
+                a.street,
+                a.house,
+                a.floor,
+                a.entrance,
+                a.apartment,
+                a.comment
+            FROM clients AS c
+            LEFT JOIN addresses AS a ON c.id = a.client_id
+            WHERE ''' + ' AND '.join(conditions) + ' ORDER BY c.id, a.id '
+
+    with load_database() as db:
+        with db.cursor() as cursor:
+            cursor.execute(sql_req, params)
+
+            return cursor.fetchall()
+
+
 
 
 
