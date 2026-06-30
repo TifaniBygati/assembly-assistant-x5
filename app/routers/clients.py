@@ -20,6 +20,7 @@ from app.sqlite_service import (
 )
 from app.postgresql_service import (
     get_clients_from_postgres,
+    get_client_by_id_from_postgre,
 
 )
 router = APIRouter(prefix="/clients", tags=["clients"])
@@ -52,9 +53,9 @@ def create_client(client_data: ClientCreate):
 def get_client_by_id(
         client_id:int
 ):
-    result = get_client_by_id_from_db(client_id)
+    result = get_client_by_id_from_postgre(client_id)
 
-    if result is None:
+    if result == []:
         raise HTTPException(status_code=404,detail="client_not_found")
 
     return result

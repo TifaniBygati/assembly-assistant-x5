@@ -33,3 +33,49 @@ def get_clients_from_postgres():
             ''')
 
             return cursor.fetchall()
+
+def get_client_by_id_from_postgre(client_id):
+    with load_database() as db:
+        with db.cursor() as cursor:
+            cursor.execute('''
+            SELECT 
+                c.id AS client_id,
+                c.name,
+                c.phone,
+                a.id AS address_id,
+                a.street,
+                a.house,
+                a.floor,
+                a.entrance,
+                a.apartment,
+                a.comment
+            FROM clients AS c
+            LEFT JOIN addresses AS a ON c.id = a.client_id
+            WHERE c.id = %s
+            ORDER BY c.id, a.id 
+            ''', (client_id,))
+
+            return cursor.fetchall()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
