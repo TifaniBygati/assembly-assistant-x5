@@ -98,10 +98,21 @@ def search_clients_from_postgres(street=None, house=None, apartment=None):
 
             return cursor.fetchall()
 
+def delete_client_from_postgres(client_id):
 
+    with load_database() as db:
+        with db.cursor() as cursor:
+            cursor.execute('''
+            DELETE FROM clients WHERE id = %s
+            RETURNING id
+            ''', (client_id,))
 
+            row = cursor.fetchone()
 
+            if row is None:
+                return None
 
+            return row['id']
 
 
 

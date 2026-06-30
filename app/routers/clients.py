@@ -19,6 +19,7 @@ from app.postgresql_service import (
     get_clients_from_postgres,
     get_client_by_id_from_postgre,
     search_clients_from_postgres,
+    delete_client_from_postgres
 
 )
 router = APIRouter(prefix="/clients", tags=["clients"])
@@ -123,9 +124,9 @@ def update_address(
 def delete_client_by_id(
         client_id:int
 ):
-    result = delete_client_from_db(client_id)
+    deleted_client_id  = delete_client_from_postgres(client_id)
 
-    if not result:
+    if deleted_client_id is None:
         raise HTTPException(status_code=404,detail="client_not_found")
 
-    return result
+    return {"deleted_client_id" : deleted_client_id}
