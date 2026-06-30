@@ -18,7 +18,10 @@ from app.sqlite_service import (
     client_put_db,
     address_put_db
 )
+from app.postgresql_service import (
+    get_clients_from_postgres,
 
+)
 router = APIRouter(prefix="/clients", tags=["clients"])
 
 
@@ -26,7 +29,7 @@ router = APIRouter(prefix="/clients", tags=["clients"])
 @router.get("")
 def get_all_clients():
 
-    result = get_all_clients_from_db()
+    result = get_clients_from_postgres()
 
     return result
 
