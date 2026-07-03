@@ -21,7 +21,8 @@ from app.postgresql_service import (
     search_clients_from_postgres,
     delete_client_from_postgres,
     create_client_from_postgres,
-    client_update_from_postgres
+    client_update_from_postgres,
+    addresses_update_from_postgres
 
 )
 router = APIRouter(prefix="/clients", tags=["clients"])
@@ -67,14 +68,20 @@ def get_client_by_id(
 @router.patch("/addresses/{address_id}")
 def update_address_by_id(
         address_id: int,
-        client_data: ClientAddressUpdatePATCH
+        address_data: ClientAddressUpdatePATCH
 ):
-    update_data = client_data.model_dump(exclude_none=True)
+    update_data = address_data.model_dump(exclude_none=True)
 
     if not update_data:
-        raise HTTPException(status_code=400, detail="bad_request")
+        raise HTTPException(status_code=400, detail="no_update_fields")
 
-    result = client_address_update(address_id, client_data)
+    if update_data.get("street") == '':
+        raise HTTPException(status_code=400, detail="invalid_street")
+
+    if update_data.get("house") == '':
+        raise HTTPException(status_code=400, detail="invalid_house")
+
+    result = addresses_update_from_postgres(address_id, address_data)
 
     if result is None:
         raise HTTPException(status_code=404, detail="address_not_found")

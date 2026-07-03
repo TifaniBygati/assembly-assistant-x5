@@ -1,4 +1,4 @@
-import os
+﻿import os
 import psycopg
 from psycopg.rows import dict_row
 
@@ -226,23 +226,58 @@ def client_update_from_postgres(client_id, client_data):
 
             return cursor.fetchall()
 
+def addresses_update_from_postgres(address_id, address_data):
+    with load_database() as db:
+        with db.cursor() as cursor:
 
+            cursor.execute('''
+            SELECT id FROM addresses WHERE id = %s
+            ''', (address_id,))
 
+            result = cursor.fetchone()
 
+            if result is None:
+                return None
 
+            new_data = address_data.model_dump(exclude_none=True)
 
+            set_parts = []
+            params = []
 
+            for name, value in new_data.items():
+                if name in ['floor', 'entrance', 'apartment', 'comment']:
+                    value = empty_to_none(value)
 
+                set_parts.append(f'{name} = %s')
+                params.append(value)
 
+            sql_req = ' UPDATE addresses SET ' + ', '.join(set_parts) + ' WHERE id = %s'
 
+            params.append(address_id)
 
+            cursor.execute(sql_req, params)
 
+            cursor.execute('''
+            SELECT 
+                c.id AS client_id,
+                c.name,
+                c.phone,
+                a.id AS address_id,
+                a.street,
+                a.house,
+                a.floor,
+                a.entrance,
+                a.apartment,
+                a.comment
+            FROM addresses AS a
+            JOIN clients AS c ON a.client_id = c.id
+            WHERE a.id = %s
+            ORDER BY c.id, a.id
+            ''',
+            (address_id,)
+            )
 
-
-
-
-
-
+            return cursor.fetchone()
 
 
 
