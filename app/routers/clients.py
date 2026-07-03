@@ -19,7 +19,8 @@ from app.postgresql_service import (
     get_clients_from_postgres,
     get_client_by_id_from_postgre,
     search_clients_from_postgres,
-    delete_client_from_postgres
+    delete_client_from_postgres,
+    create_client_from_postgres
 
 )
 router = APIRouter(prefix="/clients", tags=["clients"])
@@ -44,10 +45,10 @@ def search_clients(street=None, house=None, apartment=None):
         raise HTTPException(status_code=404,detail="client_not_found")
 
     return result
-@router.post("")
+@router.post("", status_code=201)
 def create_client(client_data: ClientCreate):
 
-    result = create_new_client_from_db(client_data)
+    result = create_client_from_postgres(client_data)
 
     return result
 
