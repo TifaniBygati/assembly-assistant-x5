@@ -173,6 +173,64 @@ def create_client_from_postgres(client_data):
 
             return cursor.fetchall()
 
+def client_update_from_postgres(client_id, client_data):
+    with load_database() as db:
+        with db.cursor() as cursor:
+
+            cursor.execute('''
+            SELECT * FROM clients WHERE id = %s
+            ''',(client_id,))
+
+            result = cursor.fetchone()
+
+            if result is None:
+                return None
+
+            new_data = client_data.model_dump(exclude_none=True)
+
+            set_parts = []
+            params = []
+
+            for name, value in new_data.items():
+                if name == 'name':
+                    value = empty_to_none(value)
+
+                set_parts.append(f'{name} = %s')
+                params.append(value)
+
+            sql_req = ' UPDATE clients SET ' + ', '.join(set_parts) + ' WHERE id = %s'
+
+            params.append(client_id)
+
+            cursor.execute(sql_req, params)
+
+            cursor.execute('''
+            SELECT 
+                c.id AS client_id,
+                c.name,
+                c.phone,
+                a.id AS address_id,
+                a.street,
+                a.house,
+                a.floor,
+                a.entrance,
+                a.apartment,
+                a.comment
+            FROM clients AS c
+            LEFT JOIN addresses AS a ON c.id = a.client_id
+            WHERE c.id = %s
+            ORDER BY c.id, a.id
+            ''',
+            (client_id,)
+            )
+
+            return cursor.fetchall()
+
+
+
+
+
+
 
 
 

@@ -20,7 +20,8 @@ from app.postgresql_service import (
     get_client_by_id_from_postgre,
     search_clients_from_postgres,
     delete_client_from_postgres,
-    create_client_from_postgres
+    create_client_from_postgres,
+    client_update_from_postgres
 
 )
 router = APIRouter(prefix="/clients", tags=["clients"])
@@ -86,9 +87,12 @@ def update_client_by_id(client_id: int, client_data: ClientUpdatePATCH):
     update_data = client_data.model_dump(exclude_none=True)
 
     if not update_data:
-        raise HTTPException(status_code=400, detail="bad_request")
+        raise HTTPException(status_code=400, detail="no_update_fields")
 
-    result = client_update_from_db(client_id, client_data)
+    if update_data.get("phone") == '':
+        raise HTTPException(status_code=400, detail="invalid_phone")
+
+    result = client_update_from_postgres(client_id, client_data)
 
     if result is None:
         raise HTTPException(status_code=404, detail="client_not_found")
