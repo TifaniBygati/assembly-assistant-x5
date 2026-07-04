@@ -1,4 +1,5 @@
 ﻿import os
+
 import psycopg
 from psycopg.rows import dict_row
 
@@ -173,7 +174,7 @@ def create_client_from_postgres(client_data):
 
             return cursor.fetchall()
 
-def client_update_from_postgres(client_id, client_data):
+def client_update_patch_from_postgres(client_id, client_data):
     with load_database() as db:
         with db.cursor() as cursor:
 
@@ -226,7 +227,7 @@ def client_update_from_postgres(client_id, client_data):
 
             return cursor.fetchall()
 
-def addresses_update_from_postgres(address_id, address_data):
+def addresses_update_patch_from_postgres(address_id, address_data):
     with load_database() as db:
         with db.cursor() as cursor:
 
@@ -278,6 +279,120 @@ def addresses_update_from_postgres(address_id, address_data):
             )
 
             return cursor.fetchone()
+
+def client_update_put_from_postgres(client_id, client_data):
+
+    with load_database() as db:
+
+        with db.cursor() as cursor:
+
+            cursor.execute('''
+            SELECT id FROM clients WHERE id = %s
+            ''', (client_id,))
+
+            result = cursor.fetchone()
+
+            if result is None:
+                return None
+
+            new_data = client_data.model_dump()
+
+            set_parts = []
+            params = []
+
+            for name, value in new_data.items():
+
+                set_parts.append(f'{name} = %s')
+                params.append(value)
+
+            sql_req = ' UPDATE clients SET ' + ', '.join(set_parts) + ' WHERE id = %s'
+
+            params.append(client_id)
+
+            cursor.execute(sql_req, params)
+
+            cursor.execute('''
+            SELECT 
+                c.id AS client_id,
+                c.name,
+                c.phone,
+                a.id AS address_id,
+                a.street,
+                a.house,
+                a.floor,
+                a.entrance,
+                a.apartment,
+                a.comment
+            FROM clients AS c
+            LEFT JOIN addresses AS a ON c.id = a.client_id
+            WHERE c.id = %s
+            ORDER BY c.id, a.id
+            ''', (client_id,))
+
+            return cursor.fetchall()
+
+def addresses_update_put_from_postgres(address_id, address_data):
+
+    with load_database() as db:
+        with db.cursor() as cursor:
+
+            cursor.execute('''
+            SELECT id 
+            FROM addresses
+            WHERE id = %s
+            ''', (address_id,))
+
+            result = cursor.fetchone()
+
+            if result is None:
+                return None
+
+            new_data = address_data.model_dump()
+
+            set_parts = []
+            params = []
+
+            for name, value in new_data.items():
+                if name in ['floor', 'entrance', 'apartment', 'comment']:
+                    value = empty_to_none(value)
+
+                set_parts.append(f'{name} = %s')
+                params.append(value)
+
+            sql_req = ' UPDATE addresses SET ' + ', '.join(set_parts) + ' WHERE id = %s'
+
+            params.append(address_id)
+
+            cursor.execute(sql_req, params)
+
+            cursor.execute('''
+            SELECT 
+                c.id AS client_id,
+                c.name,
+                c.phone,
+                a.id AS address_id,
+                a.street,
+                a.house,
+                a.floor,
+                a.entrance,
+                a.apartment,
+                a.comment
+            FROM addresses AS a
+            JOIN clients AS c ON a.client_id = c.id
+            WHERE a.id = %s
+            ''', (address_id,))
+
+            return cursor.fetchone()
+
+
+
+
+
+
+
+
+
+
 
 
 

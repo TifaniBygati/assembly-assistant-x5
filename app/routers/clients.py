@@ -7,22 +7,16 @@ from app.schemas import (ClientCreate,
                          AddressPut
                          )
 
-from app.sqlite_service import (
-    client_address_update,
-    create_new_client_from_db,
-    delete_client_from_db,
-    client_update_from_db,
-    client_put_db,
-    address_put_db
-)
 from app.postgresql_service import (
     get_clients_from_postgres,
     get_client_by_id_from_postgre,
     search_clients_from_postgres,
     delete_client_from_postgres,
     create_client_from_postgres,
-    client_update_from_postgres,
-    addresses_update_from_postgres
+    client_update_patch_from_postgres,
+    addresses_update_patch_from_postgres,
+    client_update_put_from_postgres,
+    addresses_update_put_from_postgres
 
 )
 router = APIRouter(prefix="/clients", tags=["clients"])
@@ -81,7 +75,7 @@ def update_address_by_id(
     if update_data.get("house") == '':
         raise HTTPException(status_code=400, detail="invalid_house")
 
-    result = addresses_update_from_postgres(address_id, address_data)
+    result = addresses_update_patch_from_postgres(address_id, address_data)
 
     if result is None:
         raise HTTPException(status_code=404, detail="address_not_found")
@@ -99,7 +93,7 @@ def update_client_by_id(client_id: int, client_data: ClientUpdatePATCH):
     if update_data.get("phone") == '':
         raise HTTPException(status_code=400, detail="invalid_phone")
 
-    result = client_update_from_postgres(client_id, client_data)
+    result = client_update_patch_from_postgres(client_id, client_data)
 
     if result is None:
         raise HTTPException(status_code=404, detail="client_not_found")
@@ -112,7 +106,14 @@ def update_client(
         client_data: ClientUpdatePUT,
         client_id:int
 ):
-    result = client_put_db(client_id, client_data)
+
+    if client_data.name == '':
+        raise HTTPException(status_code=400, detail="invalid_name")
+
+    if client_data.phone == '':
+        raise HTTPException(status_code=400, detail="invalid_phone")
+
+    result = client_update_put_from_postgres(client_id, client_data)
 
     if result is None:
         raise HTTPException(status_code=404, detail="client_not_found")
@@ -124,7 +125,14 @@ def update_address(
         address_data: AddressPut,
         address_id:int
 ):
-    result = address_put_db(address_id, address_data)
+
+    if address_data.street == '':
+        raise HTTPException(status_code=400, detail="invalid_street")
+
+    if address_data.house == '':
+        raise HTTPException(status_code=400, detail="invalid_house")
+
+    result = addresses_update_put_from_postgres(address_id, address_data)
 
     if result is None:
         raise HTTPException(status_code=404, detail="address_not_found")
