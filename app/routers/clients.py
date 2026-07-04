@@ -7,18 +7,18 @@ from app.schemas import (ClientCreate,
                          AddressPut
                          )
 
-from app.sqlite_service import (
-    get_all_clients_from_db,
-    get_client_by_id_from_db,
-    client_address_update,
-    find_clients_by_address_from_db,
-    create_new_client_from_db,
-    delete_client_from_db,
-    client_update_from_db,
-    client_put_db,
-    address_put_db
-)
+from app.postgresql_service import (
+    get_clients_from_postgres,
+    get_client_by_id_from_postgre,
+    search_clients_from_postgres,
+    delete_client_from_postgres,
+    create_client_from_postgres,
+    client_update_patch_from_postgres,
+    addresses_update_patch_from_postgres,
+    client_update_put_from_postgres,
+    addresses_update_put_from_postgres
 
+)
 router = APIRouter(prefix="/clients", tags=["clients"])
 
 
@@ -26,22 +26,25 @@ router = APIRouter(prefix="/clients", tags=["clients"])
 @router.get("")
 def get_all_clients():
 
-    result = get_all_clients_from_db()
+    result = get_clients_from_postgres()
 
     return result
 
 @router.get("/search")
 def search_clients(street=None, house=None, apartment=None):
-    result = find_clients_by_address_from_db(street=street, house=house, apartment=apartment)
+    result = search_clients_from_postgres(street=street, house=house, apartment=apartment)
+
+    if result is None:
+        raise HTTPException(status_code=400, detail="no_input_params")
 
     if result == []:
-        raise HTTPException(status_code=404,detail="User_not_found")
+        raise HTTPException(status_code=404,detail="client_not_found")
 
     return result
-@router.post("")
+@router.post("", status_code=201)
 def create_client(client_data: ClientCreate):
 
-    result = create_new_client_from_db(client_data)
+    result = create_client_from_postgres(client_data)
 
     return result
 
@@ -49,9 +52,9 @@ def create_client(client_data: ClientCreate):
 def get_client_by_id(
         client_id:int
 ):
-    result = get_client_by_id_from_db(client_id)
+    result = get_client_by_id_from_postgre(client_id)
 
-    if result is None:
+    if result == []:
         raise HTTPException(status_code=404,detail="client_not_found")
 
     return result
@@ -59,14 +62,20 @@ def get_client_by_id(
 @router.patch("/addresses/{address_id}")
 def update_address_by_id(
         address_id: int,
-        client_data: ClientAddressUpdatePATCH
+        address_data: ClientAddressUpdatePATCH
 ):
-    update_data = client_data.model_dump(exclude_none=True)
+    update_data = address_data.model_dump(exclude_none=True)
 
     if not update_data:
-        raise HTTPException(status_code=400, detail="bad_request")
+        raise HTTPException(status_code=400, detail="no_update_fields")
 
-    result = client_address_update(address_id, client_data)
+    if update_data.get("street") == '':
+        raise HTTPException(status_code=400, detail="invalid_street")
+
+    if update_data.get("house") == '':
+        raise HTTPException(status_code=400, detail="invalid_house")
+
+    result = addresses_update_patch_from_postgres(address_id, address_data)
 
     if result is None:
         raise HTTPException(status_code=404, detail="address_not_found")
@@ -79,9 +88,12 @@ def update_client_by_id(client_id: int, client_data: ClientUpdatePATCH):
     update_data = client_data.model_dump(exclude_none=True)
 
     if not update_data:
-        raise HTTPException(status_code=400, detail="bad_request")
+        raise HTTPException(status_code=400, detail="no_update_fields")
 
-    result = client_update_from_db(client_id, client_data)
+    if update_data.get("phone") == '':
+        raise HTTPException(status_code=400, detail="invalid_phone")
+
+    result = client_update_patch_from_postgres(client_id, client_data)
 
     if result is None:
         raise HTTPException(status_code=404, detail="client_not_found")
@@ -94,7 +106,14 @@ def update_client(
         client_data: ClientUpdatePUT,
         client_id:int
 ):
-    result = client_put_db(client_id, client_data)
+
+    if client_data.name == '':
+        raise HTTPException(status_code=400, detail="invalid_name")
+
+    if client_data.phone == '':
+        raise HTTPException(status_code=400, detail="invalid_phone")
+
+    result = client_update_put_from_postgres(client_id, client_data)
 
     if result is None:
         raise HTTPException(status_code=404, detail="client_not_found")
@@ -106,7 +125,14 @@ def update_address(
         address_data: AddressPut,
         address_id:int
 ):
-    result = address_put_db(address_id, address_data)
+
+    if address_data.street == '':
+        raise HTTPException(status_code=400, detail="invalid_street")
+
+    if address_data.house == '':
+        raise HTTPException(status_code=400, detail="invalid_house")
+
+    result = addresses_update_put_from_postgres(address_id, address_data)
 
     if result is None:
         raise HTTPException(status_code=404, detail="address_not_found")
@@ -118,9 +144,9 @@ def update_address(
 def delete_client_by_id(
         client_id:int
 ):
-    result = delete_client_from_db(client_id)
+    deleted_client_id  = delete_client_from_postgres(client_id)
 
-    if not result:
+    if deleted_client_id is None:
         raise HTTPException(status_code=404,detail="client_not_found")
 
-    return result
+    return {"deleted_client_id" : deleted_client_id}

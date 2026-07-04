@@ -4,5 +4,4 @@ __pycache__/
 *.pyc
 .env
 .idea/
-data/*.db
 tests/helpers/test_database.db
