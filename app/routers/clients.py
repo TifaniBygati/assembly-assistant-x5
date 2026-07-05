@@ -1,4 +1,5 @@
 from fastapi import APIRouter,HTTPException
+from psycopg.errors import UniqueViolation
 
 from app.schemas import (ClientCreate,
                          ClientAddressUpdatePATCH,
@@ -93,7 +94,10 @@ def update_client_by_id(client_id: int, client_data: ClientUpdatePATCH):
     if update_data.get("phone") == '':
         raise HTTPException(status_code=400, detail="invalid_phone")
 
-    result = client_update_patch_from_postgres(client_id, client_data)
+    try:
+        result = client_update_patch_from_postgres(client_id, client_data)
+    except UniqueViolation:
+        raise HTTPException(status_code=409, detail="phone_already_exists")
 
     if result is None:
         raise HTTPException(status_code=404, detail="client_not_found")
@@ -113,7 +117,10 @@ def update_client(
     if client_data.phone == '':
         raise HTTPException(status_code=400, detail="invalid_phone")
 
-    result = client_update_put_from_postgres(client_id, client_data)
+    try:
+        result = client_update_put_from_postgres(client_id, client_data)
+    except UniqueViolation:
+        raise HTTPException(status_code=409, detail="phone_already_exists")
 
     if result is None:
         raise HTTPException(status_code=404, detail="client_not_found")
