@@ -103,18 +103,18 @@ def create_test_address(cursor, client_uuid, item):
     empty_to_none(item.get('comment'))))
 
 def migrate_rows_on_test_db(cursor, data):
-    client_uuid_map = {}
+    client_key = {}
 
     for item in data:
-        client_uuid_phone = item['phone']
+        client_id = item['phone']
 
-        if client_uuid_phone not in client_uuid_map:
+        if client_id not in client_key:
             new_id = create_test_client(cursor, item)
-            client_uuid_map[client_uuid_phone] = new_id
+            client_key[client_id] = new_id
 
-        create_test_address(cursor, client_uuid_map[client_uuid_phone], item)
+        create_test_address(cursor, client_key[client_id], item)
     return {
-        "clients_created": len(client_uuid_map),
+        "clients_created": len(client_key),
         "addresses_created": len(data),
     }
 
@@ -130,7 +130,6 @@ def create_test_db():
             run_init_sql(cursor)
             result = migrate_rows_on_test_db(cursor, data)
 
-        print(result)
 
 def setup_test_database(monkeypatch):
     monkeypatch.setenv('DB_NAME', 'assembly_assistant_x5_test')
