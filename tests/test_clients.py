@@ -99,14 +99,15 @@ def test_create_client_in_test_database(monkeypatch):
 
     response = client.post('/clients', json=payload)
 
-    assert response.status_code == 200
+    assert response.status_code == 201
 
     body = response.json()
 
-    assert isinstance(body, dict)
-    assert 'client_id' in body
+    assert isinstance(body, list)
+    assert body != []
+    assert 'client_id' in body[0]
 
-    client_id = body['client_id']
+    client_id = body[0]['client_id']
 
     response = client.get(f'/clients/{client_id}')
 
@@ -171,16 +172,19 @@ def test_patch_client_in_test_database(monkeypatch):
     assert response.status_code == 200
 
     body = response.json()
+    print(body)
 
-    assert isinstance(body, dict)
+    assert isinstance(body, list)
+    assert body != []
 
-    assert body['id'] == client_id
 
-    assert body['name'] != old_name
-    assert body['phone'] != old_phone
+    assert body[0]['client_id'] == client_id
 
-    assert body['name'] == payload['name']
-    assert body['phone'] == payload['phone']
+    assert body[0]['name'] != old_name
+    assert body[0]['phone'] != old_phone
+
+    assert body[0]['name'] == payload['name']
+    assert body[0]['phone'] == payload['phone']
 
     response = client.get(f'/clients/{client_id}')
 
@@ -286,11 +290,12 @@ def test_put_client_in_test_database(monkeypatch):
 
     body = response.json()
 
-    assert isinstance(body, dict)
+    assert isinstance(body, list)
+    assert body != []
 
-    assert body['client_id'] == client_id
-    assert body['name'] == payload['name']
-    assert body['phone'] == payload['phone']
+    assert body[0]['client_id'] == client_id
+    assert body[0]['name'] == payload['name']
+    assert body[0]['phone'] == payload['phone']
 
     response = client.get(f'/clients/{client_id}')
 
@@ -401,7 +406,7 @@ def test_delete_client_in_test_database(monkeypatch):
     body = response.json()
 
     assert isinstance(body, dict)
-    assert body == {'deleted': True, 'client_id': client_id}
+    assert body == {'deleted_client_id': client_id}
 
     response = client.get(f'/clients/{client_id}')
 
