@@ -268,6 +268,28 @@ def test_patch_client_invalid_phone_returns_400(monkeypatch):
     assert response.status_code == 400
     assert response.json() == {'detail': 'invalid_phone'}
 
+def test_patch_client_phone_already_exists_returns_409(monkeypatch):
+    setup_test_database(monkeypatch)
+
+    response = client.get('/clients')
+
+    assert response.status_code == 200
+
+    body = response.json()
+    assert isinstance(body, list)
+    assert body != []
+    assert len(body) >= 2
+
+    phone = body[0]['phone']
+    client_id = body[1]['client_id']
+
+    response = client.patch(f"/clients/{client_id}", json={'phone': phone})
+
+    assert response.status_code == 409
+    body = response.json()
+    assert isinstance(body, dict)
+    assert body == {'detail' : 'phone_already_exists'}
+
 def test_put_client_unknown_id_returns_404(monkeypatch):
     payload = {
         'name': 'put_unknown_name',
@@ -456,6 +478,29 @@ def test_put_address_invalid_house_returns_400(monkeypatch):
     assert response.status_code == 400
     assert response.json() == {'detail': 'invalid_house'}
 
+def test_put_client_phone_already_exists_returns_409(monkeypatch):
+
+    setup_test_database(monkeypatch)
+
+    response = client.get('/clients')
+
+    assert response.status_code == 200
+
+    body = response.json()
+    assert isinstance(body, list)
+    assert body != []
+    assert len(body) >= 2
+
+    client_id = body[0]['client_id']
+    phone = body[1]['phone']
+
+    response = client.put(f"/clients/{client_id}", json={'name': 'string', 'phone': phone})
+
+    assert response.status_code == 409
+    body = response.json()
+    assert isinstance(body, dict)
+    assert body == {'detail': 'phone_already_exists'}
+
 def test_post_client_missing_phone_returns_422(monkeypatch):
 
     payload = {
@@ -479,3 +524,11 @@ def test_post_client_missing_phone_returns_422(monkeypatch):
     assert isinstance(body, dict)
 
     assert 'detail' in body
+
+
+
+
+
+
+
+
