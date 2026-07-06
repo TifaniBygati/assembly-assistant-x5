@@ -232,13 +232,15 @@ def addresses_update_patch_from_postgres(address_id, address_data):
         with db.cursor() as cursor:
 
             cursor.execute('''
-            SELECT id FROM addresses WHERE id = %s
+            SELECT client_id FROM addresses WHERE id = %s
             ''', (address_id,))
 
             result = cursor.fetchone()
 
             if result is None:
                 return None
+
+            client_id = result['client_id']
 
             new_data = address_data.model_dump(exclude_none=True)
 
@@ -272,13 +274,13 @@ def addresses_update_patch_from_postgres(address_id, address_data):
                 a.comment
             FROM addresses AS a
             JOIN clients AS c ON a.client_id = c.id
-            WHERE a.id = %s
+            WHERE c.id = %s
             ORDER BY c.id, a.id
             ''',
-            (address_id,)
+            (client_id,)
             )
 
-            return cursor.fetchone()
+            return cursor.fetchall()
 
 def client_update_put_from_postgres(client_id, client_data):
 
@@ -337,7 +339,7 @@ def addresses_update_put_from_postgres(address_id, address_data):
         with db.cursor() as cursor:
 
             cursor.execute('''
-            SELECT id 
+            SELECT client_id
             FROM addresses
             WHERE id = %s
             ''', (address_id,))
@@ -346,6 +348,8 @@ def addresses_update_put_from_postgres(address_id, address_data):
 
             if result is None:
                 return None
+
+            client_id = result['client_id']
 
             new_data = address_data.model_dump()
 
@@ -379,24 +383,8 @@ def addresses_update_put_from_postgres(address_id, address_data):
                 a.comment
             FROM addresses AS a
             JOIN clients AS c ON a.client_id = c.id
-            WHERE a.id = %s
-            ''', (address_id,))
+            WHERE c.id = %s
+            ORDER BY c.id, a.id
+            ''', (client_id,))
 
-            return cursor.fetchone()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            return cursor.fetchall()

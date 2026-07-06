@@ -27,8 +27,12 @@ def test_get_client_by_id():
     body = response.json()
 
     assert response.status_code == 200
-    assert isinstance(body, list)
-    assert body[0]['client_id'] == client_id
+    assert isinstance(body, dict)
+    assert body['client_id'] == client_id
+    assert 'name' in body
+    assert 'phone' in body
+    assert 'addresses' in body
+    assert isinstance(body['addresses'], list)
 
 def test_get_client_by_address():
 
@@ -38,22 +42,17 @@ def test_get_client_by_address():
 
     clients = response.json()
 
+    assert isinstance(clients, list)
     assert clients != []
 
-    client_id = clients[0]['client_id']
+    first_client = clients[0]
 
-    response = client.get(f'/clients/{client_id}')
+    assert first_client['addresses'] != []
 
-    assert response.status_code == 200
+    first_address = first_client['addresses'][0]
 
-    body = response.json()
-
-    assert isinstance(body, list)
-    assert body != []
-    assert body[0]['client_id'] == client_id
-
-    street = body[0]['street']
-    house = body[0]['house']
+    street = first_address['street']
+    house = first_address['house']
 
     response = client.get('/clients/search', params={'street': street, 'house': house})
 
@@ -63,8 +62,23 @@ def test_get_client_by_address():
 
     assert isinstance(body, list)
     assert body != []
-    assert body[0]['street'] == street
-    assert body[0]['house'] == house
+
+    found_addresses_count = 0
+
+    for client_item in body:
+        assert 'addresses' in client_item
+        assert isinstance(client_item['addresses'], list)
+
+        for address in client_item['addresses']:
+            found_addresses_count += 1
+
+            assert 'street' in address
+            assert 'house' in address
+
+            assert address['street'] == street
+            assert address['house'] == house
+
+    assert found_addresses_count > 0
 
 def test_clients_from_test_database(monkeypatch):
 
@@ -103,11 +117,13 @@ def test_create_client_in_test_database(monkeypatch):
 
     body = response.json()
 
-    assert isinstance(body, list)
-    assert body != []
-    assert 'client_id' in body[0]
+    assert isinstance(body, dict)
 
-    client_id = body[0]['client_id']
+    assert body['name'] == payload['name']
+    assert body['phone'] == payload['phone']
+    assert body['addresses'] != []
+
+    client_id = body['client_id']
 
     response = client.get(f'/clients/{client_id}')
 
@@ -115,10 +131,10 @@ def test_create_client_in_test_database(monkeypatch):
 
     body = response.json()
 
-    assert isinstance(body, list)
-    assert len(body) == 1
-    assert body[0]['phone'] == payload['phone']
-    assert body[0]['name'] == payload['name']
+    assert isinstance(body, dict)
+    assert body['phone'] == payload['phone']
+    assert body['name'] == payload['name']
+    assert body['addresses'] != []
 
     response = client.get('/clients')
 
@@ -127,7 +143,7 @@ def test_create_client_in_test_database(monkeypatch):
     body = response.json()
 
     assert isinstance(body, list)
-    assert len(body) == 3
+    assert len(body) >= 3
 
     phones = {client_data['phone'] for client_data in body}
 
@@ -149,55 +165,52 @@ def test_patch_client_in_test_database(monkeypatch):
     body = response.json()
 
     assert isinstance(body, list)
-    assert body != []
+    assert len(body) > 0
 
-    client_id = body[0]['client_id']
+    first_client_id = body[0]['client_id']
 
-    response = client.get(f'/clients/{client_id}')
-
-    assert response.status_code == 200
-
-    body = response.json()
-
-    assert isinstance(body, list)
-    assert len(body) == 1
-
-    client_id = body[0]['client_id']
-
-    old_name = body[0]['name']
-    old_phone = body[0]['phone']
-
-    response = client.patch(f'/clients/{client_id}', json=payload)
-
-    assert response.status_code == 200
-
-    body = response.json()
-    print(body)
-
-    assert isinstance(body, list)
-    assert body != []
-
-
-    assert body[0]['client_id'] == client_id
-
-    assert body[0]['name'] != old_name
-    assert body[0]['phone'] != old_phone
-
-    assert body[0]['name'] == payload['name']
-    assert body[0]['phone'] == payload['phone']
-
-    response = client.get(f'/clients/{client_id}')
+    response = client.get(f'/clients/{first_client_id}')
 
     assert response.status_code == 200
 
     body = response.json()
 
-    assert isinstance(body, list)
+    assert isinstance(body, dict)
 
-    assert len(body) == 1
+    assert 'name' in body
+    assert 'phone' in body
+    assert body['addresses'] != []
 
-    assert body[0]['name'] == payload['name']
-    assert body[0]['phone'] == payload['phone']
+    old_name = body['name']
+    old_phone = body['phone']
+
+    response = client.patch(f'/clients/{first_client_id}', json=payload)
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert isinstance(body, dict)
+
+
+    assert body['client_id'] == first_client_id
+
+    assert body['name'] != old_name
+    assert body['phone'] != old_phone
+
+    assert body['name'] == payload['name']
+    assert body['phone'] == payload['phone']
+
+    response = client.get(f'/clients/{first_client_id}')
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert isinstance(body, dict)
+
+    assert body['name'] == payload['name']
+    assert body['phone'] == payload['phone']
 
 def test_patch_address_in_test_database(monkeypatch):
 
@@ -228,10 +241,10 @@ def test_patch_address_in_test_database(monkeypatch):
 
     body = response.json()
 
-    assert isinstance(body, list)
-    assert len(body) == 1
+    assert isinstance(body, dict)
 
-    address_id = body[0]['address_id']
+    address_id = body['addresses'][0]['address_id']
+
 
     response = client.patch(f'/clients/addresses/{address_id}', json=payload)
 
@@ -240,13 +253,13 @@ def test_patch_address_in_test_database(monkeypatch):
     body = response.json()
 
     assert isinstance(body, dict)
-    assert body['address_id'] == address_id
+    assert body['addresses'][0]['address_id'] == address_id
 
-    assert body['street'] == payload['street']
-    assert body['house'] == payload['house']
-    assert body['floor'] == payload['floor']
-    assert body['entrance'] == payload['entrance']
-    assert body['apartment'] == payload['apartment']
+    assert body['addresses'][0]['street'] == payload['street']
+    assert body['addresses'][0]['house'] == payload['house']
+    assert body['addresses'][0]['floor'] == payload['floor']
+    assert body['addresses'][0]['entrance'] == payload['entrance']
+    assert body['addresses'][0]['apartment'] == payload['apartment']
 
     response = client.get(f'/clients/{client_id}')
 
@@ -254,15 +267,15 @@ def test_patch_address_in_test_database(monkeypatch):
 
     body = response.json()
 
-    assert isinstance(body, list)
-    assert len(body) == 1
-    assert body[0]['address_id'] == address_id
+    assert isinstance(body, dict)
 
-    assert body[0]['street'] == payload['street']
-    assert body[0]['house'] == payload['house']
-    assert body[0]['floor'] == payload['floor']
-    assert body[0]['entrance'] == payload['entrance']
-    assert body[0]['apartment'] == payload['apartment']
+    assert body['addresses'][0]['address_id'] == address_id
+
+    assert body['addresses'][0]['street'] == payload['street']
+    assert body['addresses'][0]['house'] == payload['house']
+    assert body['addresses'][0]['floor'] == payload['floor']
+    assert body['addresses'][0]['entrance'] == payload['entrance']
+    assert body['addresses'][0]['apartment'] == payload['apartment']
 
 def test_put_client_in_test_database(monkeypatch):
 
@@ -290,12 +303,14 @@ def test_put_client_in_test_database(monkeypatch):
 
     body = response.json()
 
-    assert isinstance(body, list)
-    assert body != []
+    assert isinstance(body, dict)
+    assert 'client_id' in body
+    assert 'name' in body
+    assert 'phone' in body
 
-    assert body[0]['client_id'] == client_id
-    assert body[0]['name'] == payload['name']
-    assert body[0]['phone'] == payload['phone']
+    assert body['client_id'] == client_id
+    assert body['name'] == payload['name']
+    assert body['phone'] == payload['phone']
 
     response = client.get(f'/clients/{client_id}')
 
@@ -303,11 +318,15 @@ def test_put_client_in_test_database(monkeypatch):
 
     body = response.json()
 
-    assert isinstance(body, list)
-    assert len(body) == 1
+    assert isinstance(body, dict)
 
-    assert body[0]['name'] == payload['name']
-    assert body[0]['phone'] == payload['phone']
+    assert 'client_id' in body
+    assert 'name' in body
+    assert 'phone' in body
+
+
+    assert body['name'] == payload['name']
+    assert body['phone'] == payload['phone']
 
 def test_put_address_in_test_database(monkeypatch):
 
@@ -339,10 +358,14 @@ def test_put_address_in_test_database(monkeypatch):
 
     body = response.json()
 
-    assert isinstance(body, list)
-    assert len(body) == 1
+    assert isinstance(body, dict)
 
-    address_id = body[0]['address_id']
+    assert 'client_id' in body
+    assert 'name' in body
+    assert 'phone' in body
+
+
+    address_id = body['addresses'][0]['address_id']
 
     response = client.put(f'/clients/addresses/{address_id}', json=payload)
 
@@ -351,13 +374,14 @@ def test_put_address_in_test_database(monkeypatch):
     body = response.json()
 
     assert isinstance(body, dict)
+    address = body['addresses'][0]
 
-    assert body['street'] == payload['street']
-    assert body['house'] == payload['house']
-    assert body['comment'] == payload['comment']
-    assert body['floor'] == payload['floor']
-    assert body['entrance'] == payload['entrance']
-    assert body['apartment'] == payload['apartment']
+    assert address['street'] == payload['street']
+    assert address['house'] == payload['house']
+    assert address['comment'] == payload['comment']
+    assert address['floor'] == payload['floor']
+    assert address['entrance'] == payload['entrance']
+    assert address['apartment'] == payload['apartment']
 
     response = client.get(f'/clients/{client_id}')
 
@@ -365,15 +389,16 @@ def test_put_address_in_test_database(monkeypatch):
 
     body = response.json()
 
-    assert isinstance(body, list)
-    assert len(body) == 1
+    assert isinstance(body, dict)
 
-    assert body[0]['street'] == payload['street']
-    assert body[0]['house'] == payload['house']
-    assert body[0]['floor'] == payload['floor']
-    assert body[0]['entrance'] == payload['entrance']
-    assert body[0]['apartment'] == payload['apartment']
-    assert body[0]['comment'] == payload['comment']
+    address = body['addresses'][0]
+
+    assert address['street'] == payload['street']
+    assert address['house'] == payload['house']
+    assert address['floor'] == payload['floor']
+    assert address['entrance'] == payload['entrance']
+    assert address['apartment'] == payload['apartment']
+    assert address['comment'] == payload['comment']
 
 def test_delete_client_in_test_database(monkeypatch):
 
@@ -396,8 +421,13 @@ def test_delete_client_in_test_database(monkeypatch):
 
     body = response.json()
 
-    assert isinstance(body, list)
-    assert len(body) == 1
+    assert isinstance(body, dict)
+
+    assert 'client_id' in body
+    assert 'name' in body
+    assert 'phone' in body
+    assert body['addresses'] != []
+
 
     response = client.delete(f'/clients/{client_id}')
 

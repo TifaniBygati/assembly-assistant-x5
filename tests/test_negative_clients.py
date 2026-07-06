@@ -106,7 +106,19 @@ def test_patch_unknown_address_returns_404(monkeypatch):
     assert isinstance(body, list)
     assert body != []
 
-    max_address_id = max([client_data["address_id"] for client_data in body])
+    addresses_id = []
+
+    for client_data in body:
+        assert 'addresses' in client_data
+        assert isinstance(client_data['addresses'], list)
+
+        for address in client_data["addresses"]:
+            assert 'address_id' in address
+            addresses_id.append(address["address_id"])
+
+    assert addresses_id != []
+
+    max_address_id = max(addresses_id)
     unknown_address_id = max_address_id + 1
 
     response = client.patch(f"/clients/addresses/{unknown_address_id}", json=payload)
@@ -142,10 +154,16 @@ def test_patch_address_no_update_fields_returns_400(monkeypatch):
     body = response.json()
 
     assert response.status_code == 200
-    assert isinstance(body, list)
-    assert len(body) == 1
+    assert isinstance(body, dict)
 
-    address_id = body[0]['address_id']
+    assert 'client_id' in body
+    assert 'name' in body
+    assert 'phone' in body
+    assert 'addresses' in body
+    assert body['addresses'] != []
+
+
+    address_id = body['addresses'][0]['address_id']
 
     response = client.patch(f"/clients/addresses/{address_id}", json=payload)
 
@@ -174,10 +192,17 @@ def test_patch_address_invalid_street_returns_400(monkeypatch):
     body = response.json()
 
     assert response.status_code == 200
-    assert isinstance(body, list)
-    assert len(body) == 1
+    assert isinstance(body, dict)
 
-    address_id = body[0]['address_id']
+    assert 'client_id' in body
+    assert 'name' in body
+    assert 'phone' in body
+    assert 'addresses' in body
+    assert body['addresses'] != []
+
+    address = body['addresses'][0]
+
+    address_id = address['address_id']
 
     response = client.patch(f"/clients/addresses/{address_id}", json={'street': ''})
 
@@ -203,10 +228,18 @@ def test_patch_address_invalid_house_returns_400(monkeypatch):
     body = response.json()
 
     assert response.status_code == 200
-    assert isinstance(body, list)
-    assert len(body) == 1
+    assert isinstance(body, dict)
 
-    address_id = body[0]['address_id']
+    assert 'client_id' in body
+    assert 'name' in body
+    assert 'phone' in body
+    assert 'addresses' in body
+    assert body['addresses'] != []
+
+    address = body['addresses'][0]
+
+
+    address_id = address['address_id']
 
     response = client.patch(f"/clients/addresses/{address_id}", json={'house': ''})
 
@@ -260,8 +293,14 @@ def test_patch_client_invalid_phone_returns_400(monkeypatch):
     body = response.json()
 
     assert response.status_code == 200
-    assert isinstance(body, list)
-    assert len(body) == 1
+    assert isinstance(body, dict)
+
+    assert 'client_id' in body
+    assert 'name' in body
+    assert 'phone' in body
+    assert 'addresses' in body
+    assert body['addresses'] != []
+
 
     response = client.patch(f"/clients/{client_id}", json={'phone': ''})
 
@@ -335,7 +374,18 @@ def test_put_address_unknown_id_returns_404(monkeypatch):
     assert isinstance(body, list)
     assert body != []
 
-    max_address_id = max([client_data["address_id"] for client_data in body])
+    address_id = []
+
+    for client_data in body:
+        assert 'addresses' in client_data
+        assert isinstance(client_data['addresses'], list)
+
+        for address_data in client_data['addresses']:
+            assert 'address_id' in address_data
+            address_id.append(address_data['address_id'])
+
+    max_address_id = max(address_id)
+
     unknown_address_id = max_address_id + 1
 
     response = client.put(f"/clients/addresses/{unknown_address_id}", json=payload)
@@ -390,7 +440,7 @@ def test_put_address_invalid_payload_returns_422(monkeypatch):
     assert isinstance(body, list)
     assert body != []
 
-    address_id = body[0]['address_id']
+    address_id = body[0]['addresses'][0]['address_id']
 
     response = client.put(f"/clients/addresses/{address_id}", json=payload)
 
@@ -452,7 +502,7 @@ def test_put_address_invalid_street_returns_400(monkeypatch):
     assert isinstance(body, list)
     assert body != []
 
-    address_id = body[0]['address_id']
+    address_id = body[0]['addresses'][0]['address_id']
 
     response = client.put(f"/clients/addresses/{address_id}", json={'street': '', 'house': '7'})
 
@@ -471,7 +521,7 @@ def test_put_address_invalid_house_returns_400(monkeypatch):
     assert isinstance(body, list)
     assert body != []
 
-    address_id = body[0]['address_id']
+    address_id = body[0]['addresses'][0]['address_id']
 
     response = client.put(f"/clients/addresses/{address_id}", json={'street': 'Мира', 'house': ''})
 

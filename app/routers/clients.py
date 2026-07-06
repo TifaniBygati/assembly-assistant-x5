@@ -1,6 +1,8 @@
 from fastapi import APIRouter,HTTPException
 from psycopg.errors import UniqueViolation
 
+from app.response_helpers import group_clients_with_addresses
+
 from app.schemas import (ClientCreate,
                          ClientAddressUpdatePATCH,
                          ClientUpdatePATCH,
@@ -27,38 +29,47 @@ router = APIRouter(prefix="/clients", tags=["clients"])
 @router.get("")
 def get_all_clients():
 
-    result = get_clients_from_postgres()
+    rows = get_clients_from_postgres()
 
-    return result
+    group_result = group_clients_with_addresses(rows)
+
+    return group_result
 
 @router.get("/search")
 def search_clients(street=None, house=None, apartment=None):
-    result = search_clients_from_postgres(street=street, house=house, apartment=apartment)
 
-    if result is None:
+    rows = search_clients_from_postgres(street=street, house=house, apartment=apartment)
+
+    if rows is None:
         raise HTTPException(status_code=400, detail="no_input_params")
 
-    if result == []:
+    if rows == []:
         raise HTTPException(status_code=404,detail="client_not_found")
 
-    return result
+    group_result = group_clients_with_addresses(rows)
+
+    return group_result
 @router.post("", status_code=201)
 def create_client(client_data: ClientCreate):
 
-    result = create_client_from_postgres(client_data)
+    rows = create_client_from_postgres(client_data)
 
-    return result
+    group_result = group_clients_with_addresses(rows)
+
+    return group_result[0]
 
 @router.get("/{client_id}")
 def get_client_by_id(
         client_id:int
 ):
-    result = get_client_by_id_from_postgre(client_id)
+    rows = get_client_by_id_from_postgre(client_id)
 
-    if result == []:
+    if rows == []:
         raise HTTPException(status_code=404,detail="client_not_found")
 
-    return result
+    group_result = group_clients_with_addresses(rows)
+
+    return group_result[0]
 
 @router.patch("/addresses/{address_id}")
 def update_address_by_id(
@@ -76,12 +87,14 @@ def update_address_by_id(
     if update_data.get("house") == '':
         raise HTTPException(status_code=400, detail="invalid_house")
 
-    result = addresses_update_patch_from_postgres(address_id, address_data)
+    rows = addresses_update_patch_from_postgres(address_id, address_data)
 
-    if result is None:
+    if rows is None:
         raise HTTPException(status_code=404, detail="address_not_found")
 
-    return result
+    group_result = group_clients_with_addresses(rows)
+
+    return group_result[0]
 
 @router.patch("/{client_id}")
 def update_client_by_id(client_id: int, client_data: ClientUpdatePATCH):
@@ -95,14 +108,16 @@ def update_client_by_id(client_id: int, client_data: ClientUpdatePATCH):
         raise HTTPException(status_code=400, detail="invalid_phone")
 
     try:
-        result = client_update_patch_from_postgres(client_id, client_data)
+        rows = client_update_patch_from_postgres(client_id, client_data)
     except UniqueViolation:
         raise HTTPException(status_code=409, detail="phone_already_exists")
 
-    if result is None:
+    if rows is None:
         raise HTTPException(status_code=404, detail="client_not_found")
 
-    return result
+    group_result = group_clients_with_addresses(rows)
+
+    return group_result[0]
 
 
 @router.put("/{client_id}")
@@ -118,14 +133,18 @@ def update_client(
         raise HTTPException(status_code=400, detail="invalid_phone")
 
     try:
-        result = client_update_put_from_postgres(client_id, client_data)
+
+        rows = client_update_put_from_postgres(client_id, client_data)
+
     except UniqueViolation:
         raise HTTPException(status_code=409, detail="phone_already_exists")
 
-    if result is None:
+    if rows is None:
         raise HTTPException(status_code=404, detail="client_not_found")
 
-    return result
+    group_result = group_clients_with_addresses(rows)
+
+    return group_result[0]
 
 @router.put("/addresses/{address_id}")
 def update_address(
@@ -139,12 +158,14 @@ def update_address(
     if address_data.house == '':
         raise HTTPException(status_code=400, detail="invalid_house")
 
-    result = addresses_update_put_from_postgres(address_id, address_data)
+    rows = addresses_update_put_from_postgres(address_id, address_data)
 
-    if result is None:
+    if rows is None:
         raise HTTPException(status_code=404, detail="address_not_found")
 
-    return result
+    group_result = group_clients_with_addresses(rows)
+
+    return group_result[0]
 
 
 @router.delete("/{client_id}")
