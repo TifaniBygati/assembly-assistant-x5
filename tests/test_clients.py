@@ -4,6 +4,38 @@ from tests.helpers.helpers import setup_test_database
 
 client = TestClient(app)
 
+def get_clients_body():
+    response = client.get("/clients")
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert isinstance(body, list)
+    assert body != []
+
+    return body
+
+def get_first_client():
+    clients = get_clients_body()
+    return clients[0]
+
+def get_first_client_id():
+    clients = get_first_client()
+    return clients['client_id']
+
+def get_first_address():
+    first_client = get_first_client()
+
+    assert 'addresses' in first_client
+    assert isinstance(first_client['addresses'], list)
+    assert first_client['addresses'] != []
+
+    return first_client['addresses'][0]
+
+def get_first_address_id():
+    first_client = get_first_address()
+    return first_client['address_id']
+
 
 def test_get_clients():
     response = client.get('/clients')
@@ -12,15 +44,8 @@ def test_get_clients():
     assert isinstance(response.json(), list)
 
 def test_get_client_by_id():
-    response = client.get('/clients')
 
-    assert response.status_code == 200
-
-    clients = response.json()
-
-    assert clients != []
-
-    client_id = clients[0]['client_id']
+    client_id = get_first_client_id()
 
     response = client.get(f'/clients/{client_id}')
 
@@ -36,20 +61,7 @@ def test_get_client_by_id():
 
 def test_get_client_by_address():
 
-    response = client.get('/clients')
-
-    assert response.status_code == 200
-
-    clients = response.json()
-
-    assert isinstance(clients, list)
-    assert clients != []
-
-    first_client = clients[0]
-
-    assert first_client['addresses'] != []
-
-    first_address = first_client['addresses'][0]
+    first_address = get_first_address()
 
     street = first_address['street']
     house = first_address['house']
@@ -84,12 +96,8 @@ def test_clients_from_test_database(monkeypatch):
 
     setup_test_database(monkeypatch)
 
-    response = client.get('/clients')
+    body = get_clients_body()
 
-    assert response.status_code == 200
-
-    body = response.json()
-    assert isinstance(body, list)
     assert len(body) == 2
 
     phones = {client['phone'] for client in body}
@@ -136,13 +144,8 @@ def test_create_client_in_test_database(monkeypatch):
     assert body['name'] == payload['name']
     assert body['addresses'] != []
 
-    response = client.get('/clients')
+    body = get_clients_body()
 
-    assert response.status_code == 200
-
-    body = response.json()
-
-    assert isinstance(body, list)
     assert len(body) >= 3
 
     phones = {client_data['phone'] for client_data in body}
@@ -158,16 +161,7 @@ def test_patch_client_in_test_database(monkeypatch):
 
     setup_test_database(monkeypatch)
 
-    response = client.get('/clients')
-
-    assert response.status_code == 200
-
-    body = response.json()
-
-    assert isinstance(body, list)
-    assert len(body) > 0
-
-    first_client_id = body[0]['client_id']
+    first_client_id = get_first_client_id()
 
     response = client.get(f'/clients/{first_client_id}')
 
@@ -224,27 +218,7 @@ def test_patch_address_in_test_database(monkeypatch):
 
     setup_test_database(monkeypatch)
 
-    response = client.get('/clients')
-
-    assert response.status_code == 200
-
-    body = response.json()
-
-    assert isinstance(body, list)
-    assert body != []
-
-    client_id = body[0]['client_id']
-
-    response = client.get(f'/clients/{client_id}')
-
-    assert response.status_code == 200
-
-    body = response.json()
-
-    assert isinstance(body, dict)
-
-    address_id = body['addresses'][0]['address_id']
-
+    address_id = get_first_address_id()
 
     response = client.patch(f'/clients/addresses/{address_id}', json=payload)
 
@@ -252,7 +226,13 @@ def test_patch_address_in_test_database(monkeypatch):
 
     body = response.json()
 
+
+
     assert isinstance(body, dict)
+
+    assert 'client_id' in body
+    client_id = body['client_id']
+
     assert body['addresses'][0]['address_id'] == address_id
 
     assert body['addresses'][0]['street'] == payload['street']
@@ -286,16 +266,7 @@ def test_put_client_in_test_database(monkeypatch):
 
     setup_test_database(monkeypatch)
 
-    response = client.get('/clients')
-
-    assert response.status_code == 200
-
-    body = response.json()
-
-    assert isinstance(body, list)
-    assert body != []
-
-    client_id = body[0]['client_id']
+    client_id = get_first_client_id()
 
     response = client.put(f'/clients/{client_id}', json=payload)
 
@@ -341,16 +312,7 @@ def test_put_address_in_test_database(monkeypatch):
 
     setup_test_database(monkeypatch)
 
-    response = client.get('/clients')
-
-    assert response.status_code == 200
-
-    body = response.json()
-
-    assert isinstance(body, list)
-    assert body != []
-
-    client_id = body[0]['client_id']
+    client_id = get_first_client_id()
 
     response = client.get(f'/clients/{client_id}')
 
@@ -404,16 +366,7 @@ def test_delete_client_in_test_database(monkeypatch):
 
     setup_test_database(monkeypatch)
 
-    response = client.get('/clients')
-
-    assert response.status_code == 200
-
-    body = response.json()
-
-    assert isinstance(body, list)
-    assert body != []
-
-    client_id = body[0]['client_id']
+    client_id = get_first_client_id()
 
     response = client.get(f'/clients/{client_id}')
 
