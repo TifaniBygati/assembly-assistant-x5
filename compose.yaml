@@ -1,0 +1,44 @@
+services:
+
+  postgres:
+
+    image: postgres:18
+
+    ports:
+      - "127.0.0.1:5433:5432"
+
+    environment:
+      POSTGRES_PASSWORD: localbase
+
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d assembly_assistant_x5_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  assembly-assistant-x5:
+    build: .
+    image: assembly-assistant-x5:0.1
+
+    ports:
+      - "127.0.0.1:8001:8000"
+
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: localbase
+      DB_NAME: assembly_assistant_x5_dev
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+    external: true
+    name: postgres_data
