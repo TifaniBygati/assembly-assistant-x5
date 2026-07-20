@@ -38,10 +38,14 @@ def get_first_address_id():
 
 
 def test_get_clients():
-    response = client.get('/clients')
+
+    response = client.get("/clients")
 
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
+    body = response.json()
+
+    assert isinstance(body, list)
+    assert body != []
 
 def test_get_client_by_id():
 
