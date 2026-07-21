@@ -37,7 +37,9 @@ def get_first_address_id():
     return first_client['address_id']
 
 
-def test_get_clients():
+def test_get_clients(monkeypatch):
+
+    setup_test_database(monkeypatch)
 
     response = client.get("/clients")
 
@@ -47,7 +49,9 @@ def test_get_clients():
     assert isinstance(body, list)
     assert body != []
 
-def test_get_client_by_id():
+def test_get_client_by_id(monkeypatch):
+
+    setup_test_database(monkeypatch)
 
     client_id = get_first_client_id()
 
@@ -63,7 +67,9 @@ def test_get_client_by_id():
     assert 'addresses' in body
     assert isinstance(body['addresses'], list)
 
-def test_get_client_by_address():
+def test_get_client_by_address(monkeypatch):
+
+    setup_test_database(monkeypatch)
 
     first_address = get_first_address()
 
