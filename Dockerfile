@@ -14,7 +14,7 @@ COPY scripts ./scripts
 
 CMD ["pytest"]
 
-FROM base AS prod
+FROM base AS app
 
 COPY README.md .
 COPY app ./app
