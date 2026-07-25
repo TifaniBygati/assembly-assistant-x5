@@ -14,9 +14,6 @@ jobs:
       - name: Run container tests
         run: docker compose -f compose.test.yaml up --abort-on-container-exit --exit-code-from tests
 
-      - name: Intentional failure
-        run: exit 1
-
       - name: Clean up test environment
         if: always()
         run: docker compose -f compose.test.yaml down -v
