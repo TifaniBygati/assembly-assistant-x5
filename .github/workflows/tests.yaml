@@ -1,0 +1,19 @@
+name: Container tests
+
+on:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Run container tests
+        run: docker compose -f compose.test.yaml up --abort-on-container-exit --exit-code-from tests
+
+      - name: Clean up test environment
+        if: always()
+        run: docker compose -f compose.test.yaml down -v
