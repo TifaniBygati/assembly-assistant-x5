@@ -35,5 +35,7 @@ jobs:
           context: .
           target: app
           push: true
-          tags: ghcr.io/tifanibygati/assembly-assistant-x5:latest
+          tags: |
+            ghcr.io/tifanibygati/assembly-assistant-x5:latest
+            ghcr.io/tifanibygati/assembly-assistant-x5:${{ github.sha }}
 
