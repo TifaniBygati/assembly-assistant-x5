@@ -110,7 +110,7 @@ def create_address(cursor, client_id, item):
     empty_to_none(item.get('comment'))
     ),)
 
-def migrate_rows(cursor, data):
+def seed_rows(cursor, data):
     client_id_map = {}
 
     for item in data:
@@ -127,7 +127,7 @@ def migrate_rows(cursor, data):
     }
 
 
-def migrate():
+def reset_and_seed():
 
     data = load_json_data()
 
@@ -138,10 +138,10 @@ def migrate():
             drop_tables(cursor)
             run_init_sql(cursor)
 
-            result = migrate_rows(cursor, data)
+            result = seed_rows(cursor, data)
 
         print(result)
 
 
 if __name__ == '__main__':
-    migrate()
+    reset_and_seed()

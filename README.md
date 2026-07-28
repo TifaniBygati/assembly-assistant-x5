@@ -126,7 +126,7 @@ scripts/init_postgresql.sql
 Для заполнения dev-базы из `data/database.json` используется скрипт:
 
 ```bash
-python scripts/migrate_json_to_postgresql.py
+python scripts/reset_and_seed_postgresql.py
 ```
 
 Скрипт создаёт нужную базу при необходимости, пересоздаёт таблицы и загружает seed-данные.
