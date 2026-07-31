@@ -33,7 +33,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          target: app
+          target: prod
           push: true
           tags: |
             ghcr.io/tifanibygati/assembly-assistant-x5:latest
