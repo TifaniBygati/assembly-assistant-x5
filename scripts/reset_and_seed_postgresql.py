@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 
 from postgresql_utils import (
@@ -11,6 +12,10 @@ from postgresql_utils import (
 BASE_DIR = Path(__file__).resolve().parent.parent
 JSON_PATH = BASE_DIR / 'data' / 'database.json'
 
+def allow_db_reset():
+    return os.getenv('ALLOW_DB_RESET', '').strip().lower() == 'true'
+
+
 def load_json_data():
     return json.loads(JSON_PATH.read_text(encoding='utf-8'))
 
@@ -19,6 +24,13 @@ def drop_tables(cursor):
     cursor.execute('DROP TABLE IF EXISTS clients;')
 
 def reset_and_seed():
+    if not allow_db_reset():
+        print(
+            "Database reset blocked. "
+            "Set ALLOW_DB_RESET=true to continue."
+        )
+        return
+
 
     data = load_json_data()
 
