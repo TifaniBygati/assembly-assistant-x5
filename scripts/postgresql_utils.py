@@ -1,4 +1,5 @@
 import os
+import json
 
 import psycopg
 from psycopg import sql
@@ -10,6 +11,7 @@ from pathlib import Path
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
 INIT_SQL = SCRIPTS_DIR / "init_postgresql.sql"
+SEED_PATH = SCRIPTS_DIR.resolve().parent / "seed" / "initial_clients.json"
 
 def get_db_name():
     return os.getenv("DB_NAME", "assembly_assistant_x5_dev")
@@ -23,6 +25,7 @@ def db_connect():
         port=int(os.getenv('DB_PORT', '5433')),
         row_factory=dict_row
     )
+
 def admin_db_connect():
     return psycopg.connect(
         dbname=os.getenv('DB_ADMIN_NAME', 'template1'),
@@ -112,3 +115,6 @@ def seed_rows(cursor, data):
         "clients_created": len(client_id_map),
         "addresses_created": len(data),
     }
+
+def load_seed_data():
+    return json.loads(SEED_PATH.read_text(encoding='utf-8'))

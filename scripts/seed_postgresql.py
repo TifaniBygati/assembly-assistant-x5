@@ -1,17 +1,10 @@
-import json
-from pathlib import Path
-
 from postgresql_utils import (
     create_database_if_not_exists,
     db_connect,
     run_init_sql,
-    seed_rows
+    seed_rows,
+    load_seed_data
     )
-BASE_DIR = Path(__file__).resolve().parent.parent
-SEED_PATH  = BASE_DIR / "seed" / "initial_clients.json"
-
-def load_seed_data():
-    return json.loads(SEED_PATH.read_text(encoding="utf-8"))
 
 def database_is_empty(cursor):
     cursor.execute("""
