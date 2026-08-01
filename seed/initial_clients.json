@@ -79,29 +79,5 @@
     "street": "Полевая",
     "house": "3",
     "comment": "частный дом, калитка справа"
-  },
-  {
-    "id": 5,
-    "order_id": "order-marina-001",
-    "name": "Марина",
-    "phone": "+79990000005",
-    "street": "Пушкина",
-    "house": "7",
-    "entrance": "4",
-    "floor": "6",
-    "apartment": "21",
-    "comment": "не звонить в домофон"
-  },
-  {
-    "id": 5,
-    "order_id": "order-marina-002",
-    "name": "Марина",
-    "phone": "+79990000005",
-    "street": "Пушкина",
-    "house": "9",
-    "entrance": "1",
-    "floor": "1",
-    "apartment": "3",
-    "comment": "передать лично в руки"
   }
 ]

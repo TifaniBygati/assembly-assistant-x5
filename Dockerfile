@@ -20,3 +20,8 @@ COPY README.md .
 COPY app ./app
 
 CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+FROM app AS prod
+
+COPY scripts ./scripts
+COPY seed ./seed
