@@ -39,3 +39,46 @@ jobs:
             ghcr.io/tifanibygati/assembly-assistant-x5:latest
             ghcr.io/tifanibygati/assembly-assistant-x5:${{ github.sha }}
 
+  deploy:
+    needs: publish_image
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: prepare_ssh
+        shell: bash
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.VDS_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.VDS_KNOWN_HOSTS }}
+        run: |
+          set -Eeuo pipefail
+
+          install -m 700 -d ~/.ssh
+
+          printf '%s\n' "$SSH_PRIVATE_KEY" \
+            | tr -d '\r' \
+            > ~/.ssh/assembly_assistant_deploy
+
+          chmod 600 ~/.ssh/assembly_assistant_deploy
+
+          printf '%s\n' "$SSH_KNOWN_HOSTS" \
+            > ~/.ssh/known_hosts
+
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: deploy_to_vds
+        shell: bash
+        env:
+          VDS_HOST: ${{ secrets.VDS_HOST }}
+          VDS_USER: ${{ secrets.VDS_USER }}
+          VDS_SSH_PORT: ${{ secrets.VDS_SSH_PORT }}
+        run: |
+          set -Eeuo pipefail
+
+          ssh \
+            -i ~/.ssh/assembly_assistant_deploy \
+            -o IdentitiesOnly=yes \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -p "$VDS_SSH_PORT" \
+            "$VDS_USER@$VDS_HOST" \
+            'sudo -n /usr/local/sbin/deploy-assembly-assistant-x5'
