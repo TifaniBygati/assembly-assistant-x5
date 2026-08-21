@@ -6,7 +6,7 @@ from psycopg.rows import dict_row
 def load_database():
     return psycopg.connect(
         host = os.getenv('DB_HOST', '127.0.0.1'),
-        port = int(os.getenv('DB_PORT', '5432')),
+        port = int(os.getenv('DB_PORT', '5433')),
         user = os.getenv('DB_USER', 'postgres'),
         password = os.getenv('DB_PASSWORD', 'localbase'),
         dbname = os.getenv('DB_NAME', 'assembly_assistant_x5_dev'),

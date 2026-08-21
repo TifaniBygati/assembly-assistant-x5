@@ -1,7 +1,7 @@
 from fastapi import APIRouter,HTTPException
 from psycopg.errors import UniqueViolation
 
-from app.response_helpers import group_clients_with_addresses
+from app.response_helpers import group_clients_with_addresses, group_clients_with_obj_orm, group_one_with_obj_orm
 
 from app.schemas import (ClientCreate,
                          ClientAddressUpdatePATCH,
@@ -11,9 +11,6 @@ from app.schemas import (ClientCreate,
                          )
 
 from app.postgresql_service import (
-    get_clients_from_postgres,
-    get_client_by_id_from_postgre,
-    search_clients_from_postgres,
     delete_client_from_postgres,
     create_client_from_postgres,
     client_update_patch_from_postgres,
@@ -22,6 +19,14 @@ from app.postgresql_service import (
     addresses_update_put_from_postgres
 
 )
+
+from app.sqlalchemy_service import (
+    get_clients_from_orm,
+    get_client_by_id_from_orm,
+    search_clients_from_orm
+
+)
+
 router = APIRouter(prefix="/clients", tags=["clients"])
 
 
@@ -29,26 +34,28 @@ router = APIRouter(prefix="/clients", tags=["clients"])
 @router.get("")
 def get_all_clients():
 
-    rows = get_clients_from_postgres()
+    obj = get_clients_from_orm()
 
-    group_result = group_clients_with_addresses(rows)
+    if obj == []:
+        raise HTTPException(status_code=404, detail="clients_not_found")
 
-    return group_result
+    result = group_clients_with_obj_orm(obj)
+
+    return result
 
 @router.get("/search")
 def search_clients(street=None, house=None, apartment=None):
 
-    rows = search_clients_from_postgres(street=street, house=house, apartment=apartment)
+    obj = search_clients_from_orm(street=street, house=house, apartment=apartment)
 
-    if rows is None:
+    if obj is None:
         raise HTTPException(status_code=400, detail="no_input_params")
 
-    if rows == []:
-        raise HTTPException(status_code=404,detail="client_not_found")
+    result = group_clients_with_obj_orm(obj)
+    if result == []:
+        raise HTTPException(status_code=404, detail="no_clients_found")
 
-    group_result = group_clients_with_addresses(rows)
-
-    return group_result
+    return result
 @router.post("", status_code=201)
 def create_client(client_data: ClientCreate):
 
@@ -62,14 +69,15 @@ def create_client(client_data: ClientCreate):
 def get_client_by_id(
         client_id:int
 ):
-    rows = get_client_by_id_from_postgre(client_id)
+    obj = get_client_by_id_from_orm(client_id)
 
-    if rows == []:
-        raise HTTPException(status_code=404,detail="client_not_found")
+    if obj is None:
+        raise HTTPException(status_code=404, detail="client_not_found")
 
-    group_result = group_clients_with_addresses(rows)
+    result = group_one_with_obj_orm(obj)
 
-    return group_result[0]
+    return result
+
 
 @router.patch("/addresses/{address_id}")
 def update_address_by_id(
