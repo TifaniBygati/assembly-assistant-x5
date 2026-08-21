@@ -121,6 +121,20 @@ def get_engine():
 
     return create_engine(f"postgresql+psycopg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
 
+def build_address(client_data, client):
+
+    new_address_data = Address(
+        street=client_data.street,
+        house=client_data.house,
+        floor=client_data.floor,
+        entrance=client_data.entrance,
+        apartment=client_data.apartment,
+        comment=client_data.comment,
+        client=client,
+    )
+
+    return new_address_data
+
 def get_client_by_id_from_orm(client_id):
 
     engine = get_engine()
@@ -192,3 +206,36 @@ def search_clients_from_orm(street=None, house=None, apartment=None):
         )
 
     return clients
+
+def create_client_from_orm(client_data):
+
+    engine = get_engine()
+
+    with Session(engine) as session:
+
+        client = (
+            session.execute(
+                select(Client)
+                .where(Client.phone == client_data.phone)
+            )
+            .scalars()
+            .first()
+        )
+        if client is None:
+
+            client = Client(
+                name=client_data.name,
+                phone=client_data.phone,
+            )
+            session.add(client)
+
+        new_address_data = build_address(client_data, client)
+        session.add(new_address_data)
+
+        session.flush()
+
+        client_id = client.id
+
+        session.commit()
+
+        return get_client_by_id_from_orm(client_id)

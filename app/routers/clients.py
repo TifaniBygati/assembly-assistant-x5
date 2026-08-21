@@ -12,7 +12,6 @@ from app.schemas import (ClientCreate,
 
 from app.postgresql_service import (
     delete_client_from_postgres,
-    create_client_from_postgres,
     client_update_patch_from_postgres,
     addresses_update_patch_from_postgres,
     client_update_put_from_postgres,
@@ -23,7 +22,8 @@ from app.postgresql_service import (
 from app.sqlalchemy_service import (
     get_clients_from_orm,
     get_client_by_id_from_orm,
-    search_clients_from_orm
+    search_clients_from_orm,
+    create_client_from_orm
 
 )
 
@@ -58,12 +58,11 @@ def search_clients(street=None, house=None, apartment=None):
     return result
 @router.post("", status_code=201)
 def create_client(client_data: ClientCreate):
+    obj = create_client_from_orm(client_data)
 
-    rows = create_client_from_postgres(client_data)
+    result = group_one_with_obj_orm(obj)
 
-    group_result = group_clients_with_addresses(rows)
-
-    return group_result[0]
+    return result
 
 @router.get("/{client_id}")
 def get_client_by_id(
