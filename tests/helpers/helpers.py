@@ -22,7 +22,7 @@ def load_test_db():
             user=os.getenv('DB_USER', 'postgres'),
             password=os.getenv('DB_PASSWORD', 'localbase'),
             host=os.getenv('DB_HOST', '127.0.0.1'),
-            port=int(os.getenv('DB_PORT', '5432')),
+            port=int(os.getenv('DB_PORT', '5433')),
             row_factory=dict_row
         )
 
@@ -32,7 +32,7 @@ def admin_db():
             user=os.getenv("DB_USER", "postgres"),
             password=os.getenv("DB_PASSWORD", "localbase"),
             host=os.getenv("DB_HOST", "127.0.0.1"),
-            port=int(os.getenv("DB_PORT", "5432")),
+            port=int(os.getenv("DB_PORT", "5433")),
             row_factory=dict_row,
             autocommit=True,
         )
