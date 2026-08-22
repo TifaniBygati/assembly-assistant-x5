@@ -1,5 +1,7 @@
 from fastapi import APIRouter,HTTPException
+
 from psycopg.errors import UniqueViolation
+from sqlalchemy.exc import IntegrityError
 
 from app.response_helpers import group_clients_with_addresses, group_clients_with_obj_orm, group_one_with_obj_orm
 
@@ -12,8 +14,6 @@ from app.schemas import (ClientCreate,
 
 from app.postgresql_service import (
     delete_client_from_postgres,
-    client_update_patch_from_postgres,
-    addresses_update_patch_from_postgres,
     client_update_put_from_postgres,
     addresses_update_put_from_postgres
 
@@ -23,7 +23,9 @@ from app.sqlalchemy_service import (
     get_clients_from_orm,
     get_client_by_id_from_orm,
     search_clients_from_orm,
-    create_client_from_orm
+    create_client_from_orm,
+    patch_client_from_orm,
+    patch_address_from_orm
 
 )
 
@@ -83,48 +85,54 @@ def update_address_by_id(
         address_id: int,
         address_data: ClientAddressUpdatePATCH
 ):
-    update_data = address_data.model_dump(exclude_none=True)
 
-    if not update_data:
+    new_address_data = address_data.model_dump(exclude_none=True)
+
+    if not new_address_data:
         raise HTTPException(status_code=400, detail="no_update_fields")
 
-    if update_data.get("street") == '':
-        raise HTTPException(status_code=400, detail="invalid_street")
+    for item, value in new_address_data.items():
+        if value == '':
+            raise HTTPException(status_code=400, detail=f"invalid_{item}")
 
-    if update_data.get("house") == '':
-        raise HTTPException(status_code=400, detail="invalid_house")
+    obj = patch_address_from_orm(address_id, new_address_data)
 
-    rows = addresses_update_patch_from_postgres(address_id, address_data)
-
-    if rows is None:
+    if obj is None:
         raise HTTPException(status_code=404, detail="address_not_found")
 
-    group_result = group_clients_with_addresses(rows)
+    result = group_one_with_obj_orm(obj)
 
-    return group_result[0]
+    return result
+
 
 @router.patch("/{client_id}")
 def update_client_by_id(client_id: int, client_data: ClientUpdatePATCH):
 
-    update_data = client_data.model_dump(exclude_none=True)
+    new_client_data = client_data.model_dump(exclude_none=True)
 
-    if not update_data:
+    if not new_client_data:
         raise HTTPException(status_code=400, detail="no_update_fields")
 
-    if update_data.get("phone") == '':
-        raise HTTPException(status_code=400, detail="invalid_phone")
-
+    for item, value in new_client_data.items():
+        if value == '':
+            raise HTTPException(status_code=400, detail=f"invalid_{item}")
     try:
-        rows = client_update_patch_from_postgres(client_id, client_data)
-    except UniqueViolation:
-        raise HTTPException(status_code=409, detail="phone_already_exists")
 
-    if rows is None:
+        obj = patch_client_from_orm(client_id, new_client_data)
+
+    except IntegrityError as exc:
+        if isinstance(exc.orig, UniqueViolation):
+            raise HTTPException(status_code=409, detail="phone_already_exists")
+
+        raise
+
+    if obj is None:
         raise HTTPException(status_code=404, detail="client_not_found")
 
-    group_result = group_clients_with_addresses(rows)
+    result = group_one_with_obj_orm(obj)
 
-    return group_result[0]
+    return result
+
 
 
 @router.put("/{client_id}")
