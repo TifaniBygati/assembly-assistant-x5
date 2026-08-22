@@ -46,7 +46,8 @@ class Client(Base):
     )
 
     addresses: Mapped[list['Address']] = relationship(
-        back_populates='client'
+        back_populates='client',
+        passive_deletes=True
     )
 
 class Address(Base):
@@ -337,3 +338,27 @@ def put_address_from_orm(address_id, new_address_data):
         session.commit()
 
     return get_client_by_id_from_orm(client_id)
+
+def delete_client_from_orm(client_id):
+
+    engine = get_engine()
+
+    with Session(engine) as session:
+        client = (
+            session.execute(
+                select(Client)
+                .where(Client.id == client_id)
+            )
+            .scalars()
+            .first()
+        )
+        if client is None:
+            return None
+
+        session.delete(client)
+
+        client_id = client.id
+
+        session.commit()
+
+        return client_id

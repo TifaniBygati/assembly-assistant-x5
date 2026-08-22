@@ -12,10 +12,6 @@ from app.schemas import (ClientCreate,
                          AddressPut
                          )
 
-from app.postgresql_service import (
-    delete_client_from_postgres,
-)
-
 from app.sqlalchemy_service import (
     get_clients_from_orm,
     get_client_by_id_from_orm,
@@ -24,7 +20,8 @@ from app.sqlalchemy_service import (
     patch_client_from_orm,
     patch_address_from_orm,
     put_client_from_orm,
-    put_address_from_orm
+    put_address_from_orm,
+    delete_client_from_orm
 
 )
 
@@ -186,9 +183,9 @@ def update_address(
 def delete_client_by_id(
         client_id:int
 ):
-    deleted_client_id  = delete_client_from_postgres(client_id)
+    client  = delete_client_from_orm(client_id)
 
-    if deleted_client_id is None:
+    if client is None:
         raise HTTPException(status_code=404,detail="client_not_found")
 
-    return {"deleted_client_id" : deleted_client_id}
+    return {"deleted_client_id" : client}
