@@ -14,9 +14,6 @@ from app.schemas import (ClientCreate,
 
 from app.postgresql_service import (
     delete_client_from_postgres,
-    client_update_put_from_postgres,
-    addresses_update_put_from_postgres
-
 )
 
 from app.sqlalchemy_service import (
@@ -25,7 +22,9 @@ from app.sqlalchemy_service import (
     search_clients_from_orm,
     create_client_from_orm,
     patch_client_from_orm,
-    patch_address_from_orm
+    patch_address_from_orm,
+    put_client_from_orm,
+    put_address_from_orm
 
 )
 
@@ -137,51 +136,51 @@ def update_client_by_id(client_id: int, client_data: ClientUpdatePATCH):
 
 @router.put("/{client_id}")
 def update_client(
-        client_data: ClientUpdatePUT,
-        client_id:int
+        client_id: int,
+        client_data: ClientUpdatePUT
 ):
 
-    if client_data.name == '':
-        raise HTTPException(status_code=400, detail="invalid_name")
-
-    if client_data.phone == '':
-        raise HTTPException(status_code=400, detail="invalid_phone")
+    for item, value in client_data.model_dump().items():
+        if value == '':
+            raise HTTPException(status_code=400, detail=f"invalid_{item}")
 
     try:
 
-        rows = client_update_put_from_postgres(client_id, client_data)
+        obj = put_client_from_orm(client_id, client_data)
 
-    except UniqueViolation:
-        raise HTTPException(status_code=409, detail="phone_already_exists")
+    except IntegrityError as exc:
+        if isinstance(exc.orig, UniqueViolation):
+            raise HTTPException(status_code=409, detail="phone_already_exists")
+        raise
 
-    if rows is None:
+    if obj is None:
         raise HTTPException(status_code=404, detail="client_not_found")
 
-    group_result = group_clients_with_addresses(rows)
+    result = group_one_with_obj_orm(obj)
 
-    return group_result[0]
+    return result
+
 
 @router.put("/addresses/{address_id}")
 def update_address(
-        address_data: AddressPut,
-        address_id:int
+        address_id:int,
+        address_data: AddressPut
 ):
 
-    if address_data.street == '':
-        raise HTTPException(status_code=400, detail="invalid_street")
+    new_address_data = address_data.model_dump()
 
-    if address_data.house == '':
-        raise HTTPException(status_code=400, detail="invalid_house")
+    for item, value in new_address_data.items():
+        if value == '':
+            raise HTTPException(status_code=400, detail=f"invalid_{item}")
 
-    rows = addresses_update_put_from_postgres(address_id, address_data)
+    obj = put_address_from_orm(address_id, new_address_data)
 
-    if rows is None:
+    if obj is None:
         raise HTTPException(status_code=404, detail="address_not_found")
 
-    group_result = group_clients_with_addresses(rows)
+    result = group_one_with_obj_orm(obj)
 
-    return group_result[0]
-
+    return result
 
 @router.delete("/{client_id}")
 def delete_client_by_id(

@@ -289,3 +289,51 @@ def patch_address_from_orm(address_id, new_address_data):
 
         return get_client_by_id_from_orm(client_id)
 
+def put_client_from_orm(client_id, new_client_data):
+
+    engine = get_engine()
+
+    with Session(engine) as session:
+        client = (
+            session.execute(
+                select(Client)
+                .where(Client.id == client_id)
+            )
+            .scalars()
+            .first()
+        )
+
+        if client is None:
+            return None
+
+        client.name = new_client_data.name
+        client.phone = new_client_data.phone
+
+        session.commit()
+
+    return get_client_by_id_from_orm(client_id)
+
+def put_address_from_orm(address_id, new_address_data):
+
+    engine = get_engine()
+    with Session(engine) as session:
+        address = (
+            session.execute(
+                select(Address)
+                .where(Address.id == address_id)
+            )
+            .scalars()
+            .first()
+        )
+
+        if address is None:
+            return None
+
+        for name, value in new_address_data.items():
+            setattr(address, name, value)
+
+        client_id = address.client_id
+
+        session.commit()
+
+    return get_client_by_id_from_orm(client_id)
