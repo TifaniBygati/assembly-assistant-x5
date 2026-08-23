@@ -1,7 +1,10 @@
-from fastapi import APIRouter,HTTPException
+from fastapi import APIRouter,HTTPException,Depends
 
 from psycopg.errors import UniqueViolation
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from app.database import get_session
 
 from app.response_helpers import group_clients_with_addresses, group_clients_with_obj_orm, group_one_with_obj_orm
 
@@ -30,9 +33,9 @@ router = APIRouter(prefix="/clients", tags=["clients"])
 
 
 @router.get("")
-def get_all_clients():
+def get_all_clients(session: Session = Depends(get_session)):
 
-    obj = get_clients_from_orm()
+    obj = get_clients_from_orm(session)
 
     if obj == []:
         raise HTTPException(status_code=404, detail="clients_not_found")
@@ -42,9 +45,19 @@ def get_all_clients():
     return result
 
 @router.get("/search")
-def search_clients(street=None, house=None, apartment=None):
+def search_clients(
+        session: Session = Depends(get_session),
+        street=None,
+        house=None,
+        apartment=None,
+):
 
-    obj = search_clients_from_orm(street=street, house=house, apartment=apartment)
+    obj = search_clients_from_orm(
+        session,
+        street=street,
+        house=house,
+        apartment=apartment
+    )
 
     if obj is None:
         raise HTTPException(status_code=400, detail="no_input_params")
@@ -55,8 +68,11 @@ def search_clients(street=None, house=None, apartment=None):
 
     return result
 @router.post("", status_code=201)
-def create_client(client_data: ClientCreate):
-    obj = create_client_from_orm(client_data)
+def create_client(
+        client_data: ClientCreate,
+        session: Session = Depends(get_session)
+):
+    obj = create_client_from_orm(client_data, session)
 
     result = group_one_with_obj_orm(obj)
 
@@ -64,9 +80,10 @@ def create_client(client_data: ClientCreate):
 
 @router.get("/{client_id}")
 def get_client_by_id(
-        client_id:int
+        client_id: int,
+        session: Session = Depends(get_session)
 ):
-    obj = get_client_by_id_from_orm(client_id)
+    obj = get_client_by_id_from_orm(client_id, session)
 
     if obj is None:
         raise HTTPException(status_code=404, detail="client_not_found")
@@ -79,7 +96,8 @@ def get_client_by_id(
 @router.patch("/addresses/{address_id}")
 def update_address_by_id(
         address_id: int,
-        address_data: ClientAddressUpdatePATCH
+        address_data: ClientAddressUpdatePATCH,
+        session: Session = Depends(get_session)
 ):
 
     new_address_data = address_data.model_dump(exclude_none=True)
@@ -91,7 +109,7 @@ def update_address_by_id(
         if value == '':
             raise HTTPException(status_code=400, detail=f"invalid_{item}")
 
-    obj = patch_address_from_orm(address_id, new_address_data)
+    obj = patch_address_from_orm(address_id, new_address_data, session)
 
     if obj is None:
         raise HTTPException(status_code=404, detail="address_not_found")
@@ -102,7 +120,11 @@ def update_address_by_id(
 
 
 @router.patch("/{client_id}")
-def update_client_by_id(client_id: int, client_data: ClientUpdatePATCH):
+def update_client_by_id(
+        client_id: int,
+        client_data: ClientUpdatePATCH,
+        session: Session = Depends(get_session)
+):
 
     new_client_data = client_data.model_dump(exclude_none=True)
 
@@ -114,7 +136,7 @@ def update_client_by_id(client_id: int, client_data: ClientUpdatePATCH):
             raise HTTPException(status_code=400, detail=f"invalid_{item}")
     try:
 
-        obj = patch_client_from_orm(client_id, new_client_data)
+        obj = patch_client_from_orm(client_id, new_client_data, session)
 
     except IntegrityError as exc:
         if isinstance(exc.orig, UniqueViolation):
@@ -134,7 +156,8 @@ def update_client_by_id(client_id: int, client_data: ClientUpdatePATCH):
 @router.put("/{client_id}")
 def update_client(
         client_id: int,
-        client_data: ClientUpdatePUT
+        client_data: ClientUpdatePUT,
+        session: Session = Depends(get_session)
 ):
 
     for item, value in client_data.model_dump().items():
@@ -143,7 +166,7 @@ def update_client(
 
     try:
 
-        obj = put_client_from_orm(client_id, client_data)
+        obj = put_client_from_orm(client_id, client_data, session)
 
     except IntegrityError as exc:
         if isinstance(exc.orig, UniqueViolation):
@@ -161,7 +184,8 @@ def update_client(
 @router.put("/addresses/{address_id}")
 def update_address(
         address_id:int,
-        address_data: AddressPut
+        address_data: AddressPut,
+        session: Session = Depends(get_session)
 ):
 
     new_address_data = address_data.model_dump()
@@ -170,7 +194,7 @@ def update_address(
         if value == '':
             raise HTTPException(status_code=400, detail=f"invalid_{item}")
 
-    obj = put_address_from_orm(address_id, new_address_data)
+    obj = put_address_from_orm(address_id, new_address_data, session)
 
     if obj is None:
         raise HTTPException(status_code=404, detail="address_not_found")
@@ -181,9 +205,10 @@ def update_address(
 
 @router.delete("/{client_id}")
 def delete_client_by_id(
-        client_id:int
+        client_id: int,
+        session: Session = Depends(get_session)
 ):
-    client  = delete_client_from_orm(client_id)
+    client  = delete_client_from_orm(client_id, session)
 
     if client is None:
         raise HTTPException(status_code=404,detail="client_not_found")
