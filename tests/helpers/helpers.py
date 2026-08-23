@@ -145,8 +145,17 @@ def setup_test_database(monkeypatch):
 
     create_test_db()
 
+    DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
+    DB_PORT = int(os.getenv("DB_PORT", "5433"))
+    DB_USER = os.getenv("DB_USER", "postgres")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "localbase")
+    DB_NAME = os.getenv("DB_NAME", "assembly_assistant_x5_test")
+
     test_engine = create_engine(
-        'postgresql+psycopg://postgres:localbase@127.0.0.1:5433/assembly_assistant_x5_test')
+        f"postgresql+psycopg://"
+        f"{DB_USER}:{DB_PASSWORD}@"
+        f"{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    )
 
     TestSessionLocal = sessionmaker(bind=test_engine)
 
