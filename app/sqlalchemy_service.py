@@ -113,15 +113,6 @@ class Address(Base):
         back_populates='addresses'
     )
 
-def get_engine():
-    DB_HOST = os.getenv('DB_HOST', '127.0.0.1')
-    DB_PORT = int(os.getenv('DB_PORT', '5433'))
-    DB_USER = os.getenv('DB_USER', 'postgres')
-    DB_PASSWORD = os.getenv('DB_PASSWORD', 'localbase')
-    DB_NAME = os.getenv('DB_NAME', 'assembly_assistant_x5_dev')
-
-    return create_engine(f"postgresql+psycopg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
-
 def build_address(client_data, client):
 
     new_address_data = Address(
@@ -136,44 +127,49 @@ def build_address(client_data, client):
 
     return new_address_data
 
-def get_client_by_id_from_orm(client_id):
+def get_client_by_id_from_orm(
+        client_id: int,
+        session: Session
+):
 
-    engine = get_engine()
-
-    with Session(engine) as session:
-        client = (
-            session.execute(
-                select(Client)
-                .where(Client.id == client_id)
-                .options(
-                    joinedload(Client.addresses))
-            )
-            .unique()
-            .scalars()
-            .first()
+    client = (
+        session.execute(
+            select(Client)
+            .where(Client.id == client_id)
+            .options(
+                joinedload(Client.addresses))
         )
+        .unique()
+        .scalars()
+        .first()
+    )
 
-        return client
+    return client
 
-def get_clients_from_orm():
+def get_clients_from_orm(
+        session: Session
+):
 
-    engine = get_engine()
 
-    with Session(engine) as session:
-        clients = (
-            session.execute(
-                select(Client)
-                .options(
-                    joinedload(Client.addresses)
-                )
+    clients = (
+        session.execute(
+            select(Client)
+            .options(
+                joinedload(Client.addresses)
             )
-            .unique()
-            .scalars()
-            .all()
         )
-        return clients
+        .unique()
+        .scalars()
+        .all()
+    )
+    return clients
 
-def search_clients_from_orm(street=None, house=None, apartment=None):
+def search_clients_from_orm(
+        session: Session,
+        street=None,
+        house=None,
+        apartment=None,
+):
 
     if street is None and house is None and apartment is None:
         return None
@@ -189,176 +185,179 @@ def search_clients_from_orm(street=None, house=None, apartment=None):
     if apartment is not None:
         conditions.append(Address.apartment == apartment)
 
-    engine = get_engine()
 
-    with Session(engine) as session:
-        clients = (
-            session.execute(
-                select(Client)
-                .join(Address)
-                .where(*conditions)
-                .options(
-                    contains_eager(Client.addresses)
-                )
+    clients = (
+        session.execute(
+            select(Client)
+            .join(Address)
+            .where(*conditions)
+            .options(
+                contains_eager(Client.addresses)
             )
-            .unique()
-            .scalars()
-            .all()
         )
+        .unique()
+        .scalars()
+        .all()
+    )
 
     return clients
 
-def create_client_from_orm(client_data):
+def create_client_from_orm(
+        client_data,
+        session: Session
+):
 
-    engine = get_engine()
-
-    with Session(engine) as session:
-
-        client = (
-            session.execute(
-                select(Client)
-                .where(Client.phone == client_data.phone)
-            )
-            .scalars()
-            .first()
+    client = (
+        session.execute(
+            select(Client)
+            .where(Client.phone == client_data.phone)
         )
-        if client is None:
+        .scalars()
+        .first()
+    )
+    if client is None:
 
-            client = Client(
-                name=client_data.name,
-                phone=client_data.phone,
-            )
-            session.add(client)
-
-        new_address_data = build_address(client_data, client)
-        session.add(new_address_data)
-
-        session.flush()
-
-        client_id = client.id
-
-        session.commit()
-
-        return get_client_by_id_from_orm(client_id)
-
-def patch_client_from_orm(client_id, new_client_data):
-
-    engine = get_engine()
-
-    with Session(engine) as session:
-        client = (
-            session.execute(
-                select(Client)
-                .where(Client.id == client_id)
-            )
-            .scalars()
-            .first()
+        client = Client(
+            name=client_data.name,
+            phone=client_data.phone,
         )
+        session.add(client)
 
-        if client is None:
-            return None
+    new_address_data = build_address(client_data, client)
+    session.add(new_address_data)
 
-        for name, value in new_client_data.items():
-            setattr(client, name, value)
+    session.flush()
 
-        session.commit()
+    client_id = client.id
 
-        return get_client_by_id_from_orm(client_id)
+    session.commit()
 
-def patch_address_from_orm(address_id, new_address_data):
+    return get_client_by_id_from_orm(client_id, session)
 
-    engine = get_engine()
+def patch_client_from_orm(
+        client_id: int,
+        new_client_data,
+        session: Session
+):
 
-    with Session(engine) as session:
-        address = (
-            session.execute(
-                select(Address)
-                .where(Address.id == address_id)
-            )
-            .scalars()
-            .first()
+    client = (
+        session.execute(
+            select(Client)
+            .where(Client.id == client_id)
         )
-        if address is None:
-            return None
+        .scalars()
+        .first()
+    )
 
-        for name, value in new_address_data.items():
-            setattr(address, name, value)
+    if client is None:
+        return None
 
-        client_id = address.client_id
+    for name, value in new_client_data.items():
+        setattr(client, name, value)
 
-        session.commit()
+    session.commit()
 
-        return get_client_by_id_from_orm(client_id)
+    return get_client_by_id_from_orm(client_id, session)
 
-def put_client_from_orm(client_id, new_client_data):
+def patch_address_from_orm(
+        address_id: int,
+        new_address_data,
+        session: Session
+):
 
-    engine = get_engine()
-
-    with Session(engine) as session:
-        client = (
-            session.execute(
-                select(Client)
-                .where(Client.id == client_id)
-            )
-            .scalars()
-            .first()
+    address = (
+        session.execute(
+            select(Address)
+            .where(Address.id == address_id)
         )
+        .scalars()
+        .first()
+    )
+    if address is None:
+        return None
 
-        if client is None:
-            return None
+    for name, value in new_address_data.items():
+        setattr(address, name, value)
 
-        client.name = new_client_data.name
-        client.phone = new_client_data.phone
+    client_id = address.client_id
 
-        session.commit()
+    session.commit()
 
-    return get_client_by_id_from_orm(client_id)
+    return get_client_by_id_from_orm(client_id, session)
 
-def put_address_from_orm(address_id, new_address_data):
+def put_client_from_orm(
+        client_id: int,
+        new_client_data,
+        session: Session
+):
 
-    engine = get_engine()
-    with Session(engine) as session:
-        address = (
-            session.execute(
-                select(Address)
-                .where(Address.id == address_id)
-            )
-            .scalars()
-            .first()
+    client = (
+        session.execute(
+            select(Client)
+            .where(Client.id == client_id)
         )
+        .scalars()
+        .first()
+    )
 
-        if address is None:
-            return None
+    if client is None:
+        return None
 
-        for name, value in new_address_data.items():
-            setattr(address, name, value)
+    client.name = new_client_data.name
+    client.phone = new_client_data.phone
 
-        client_id = address.client_id
+    session.commit()
 
-        session.commit()
+    return get_client_by_id_from_orm(client_id, session)
 
-    return get_client_by_id_from_orm(client_id)
+def put_address_from_orm(
+        address_id: int,
+        new_address_data,
+        session: Session
+):
 
-def delete_client_from_orm(client_id):
 
-    engine = get_engine()
-
-    with Session(engine) as session:
-        client = (
-            session.execute(
-                select(Client)
-                .where(Client.id == client_id)
-            )
-            .scalars()
-            .first()
+    address = (
+        session.execute(
+            select(Address)
+            .where(Address.id == address_id)
         )
-        if client is None:
-            return None
+        .scalars()
+        .first()
+    )
 
-        session.delete(client)
+    if address is None:
+        return None
 
-        client_id = client.id
+    for name, value in new_address_data.items():
+        setattr(address, name, value)
 
-        session.commit()
+    client_id = address.client_id
 
-        return client_id
+    session.commit()
+
+    return get_client_by_id_from_orm(client_id, session)
+
+def delete_client_from_orm(
+        client_id: int,
+        session: Session
+):
+
+    client = (
+        session.execute(
+            select(Client)
+            .where(Client.id == client_id)
+        )
+        .scalars()
+        .first()
+    )
+    if client is None:
+        return None
+
+    session.delete(client)
+
+    client_id = client.id
+
+    session.commit()
+
+    return client_id

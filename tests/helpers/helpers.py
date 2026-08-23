@@ -2,6 +2,12 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg import sql
 
+from app.main import app
+from app.database import get_session
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
 from pathlib import Path
 
 import os
@@ -132,5 +138,24 @@ def create_test_db():
 
 
 def setup_test_database(monkeypatch):
-    monkeypatch.setenv('DB_NAME', 'assembly_assistant_x5_test')
+    monkeypatch.setenv(
+        'DB_NAME',
+        'assembly_assistant_x5_test'
+    )
+
     create_test_db()
+
+    test_engine = create_engine(
+        'postgresql+psycopg://postgres:localbase@127.0.0.1:5433/assembly_assistant_x5_test')
+
+    TestSessionLocal = sessionmaker(bind=test_engine)
+
+    def get_test_session():
+        with TestSessionLocal() as session:
+            yield session
+
+    monkeypatch.setitem(
+        app.dependency_overrides,
+        get_session,
+        get_test_session
+    )
