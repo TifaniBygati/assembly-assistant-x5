@@ -14,10 +14,10 @@ import os
 config = context.config
 
 DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
-DB_PORT = int(os.getenv("DB_PORT", "5439"))
-DB_USER = os.getenv("DB_USER", 'postgres')
-DB_PASSWORD = os.getenv("DB_PASSWORD", 'localbase')
-DB_NAME = os.getenv("DB_NAME", 'assembly_assistant_x5_alembic')
+DB_PORT = int(os.getenv("DB_PORT", "5433"))
+DB_USER = os.getenv("DB_USER", "postgres")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "localbase")
+DB_NAME = os.getenv("DB_NAME", "assembly_assistant_x5_dev")
 
 DB_URL = f'postgresql+psycopg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 
