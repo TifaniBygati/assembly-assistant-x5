@@ -1,75 +1,97 @@
+import os
+import json
+
 import psycopg
 from psycopg.rows import dict_row
 from psycopg import sql
 
-from app.main import app
-from app.database import get_session
+from alembic import command
+from alembic.config import Config
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from pathlib import Path
 
-import os
-import json
+from app.main import app
+from app.database import get_session
+
 
 TEST_DIR = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = TEST_DIR.parent
 
 JSON_DATA = TEST_DIR / 'helpers' / 'test_database.json'
 
-INIT_SQL = TEST_DIR.parent / 'scripts' / 'init_postgresql.sql'
 
 def get_test_db_name():
     return os.getenv('DB_NAME', 'assembly_assistant_x5_test')
 
+
 def load_test_db():
     return psycopg.connect(
-            dbname=get_test_db_name(),
-            user=os.getenv('DB_USER', 'postgres'),
-            password=os.getenv('DB_PASSWORD', 'localbase'),
-            host=os.getenv('DB_HOST', '127.0.0.1'),
-            port=int(os.getenv('DB_PORT', '5433')),
-            row_factory=dict_row
-        )
+        dbname=get_test_db_name(),
+        user=os.getenv('DB_USER', 'postgres'),
+        password=os.getenv('DB_PASSWORD', 'localbase'),
+        host=os.getenv('DB_HOST', '127.0.0.1'),
+        port=int(os.getenv('DB_PORT', '5433')),
+        row_factory=dict_row
+    )
+
 
 def admin_db():
     return psycopg.connect(
-            dbname=os.getenv("DB_ADMIN_NAME", "template1"),
-            user=os.getenv("DB_USER", "postgres"),
-            password=os.getenv("DB_PASSWORD", "localbase"),
-            host=os.getenv("DB_HOST", "127.0.0.1"),
-            port=int(os.getenv("DB_PORT", "5433")),
-            row_factory=dict_row,
-            autocommit=True,
-        )
+        dbname=os.getenv('DB_ADMIN_NAME', 'template1'),
+        user=os.getenv('DB_USER', 'postgres'),
+        password=os.getenv('DB_PASSWORD', 'localbase'),
+        host=os.getenv('DB_HOST', '127.0.0.1'),
+        port=int(os.getenv('DB_PORT', '5433')),
+        row_factory=dict_row,
+        autocommit=True,
+    )
+
 
 def create_database_if_not_exists():
     db_name = get_test_db_name()
 
     with admin_db() as db:
         with db.cursor() as cur:
-            cur.execute('''
-            SELECT 1
-            FROM pg_database
-            WHERE datname = %s;
-            ''', (db_name,))
+            cur.execute(
+                '''
+                SELECT 1
+                FROM pg_database
+                WHERE datname = %s;
+                ''',
+                (db_name,)
+            )
 
             database_exists = cur.fetchone()
 
             if database_exists is None:
-                cur.execute(sql.SQL('CREATE DATABASE {};').format(sql.Identifier(db_name)))
+                cur.execute(
+                    sql.SQL('CREATE DATABASE {};').format(
+                        sql.Identifier(db_name)
+                    )
+                )
 
-def drop_tables_if_exist(cursor):
-    cursor.execute('''DROP TABLE IF EXISTS addresses;''')
-    cursor.execute('''DROP TABLE IF EXISTS clients;''')
 
-def run_init_sql(cursor):
-    init_sql = INIT_SQL.read_text(encoding='utf-8')
-    cursor.execute(init_sql)
+def run_migrations():
+    alembic_config = Config(
+        str(PROJECT_ROOT / 'alembic.ini')
+    )
+
+    command.upgrade(alembic_config, 'head')
+
+
+def clear_test_data(cursor):
+    cursor.execute(
+        'TRUNCATE TABLE clients RESTART IDENTITY CASCADE;'
+    )
+
 
 def load_test_data_json():
     test_data = JSON_DATA.read_text(encoding='utf-8')
     return json.loads(test_data)
+
 
 def empty_to_none(value):
     if value is None:
@@ -80,33 +102,49 @@ def empty_to_none(value):
 
     return value
 
+
 def create_test_client(cursor, item):
-    cursor.execute('''
-    INSERT INTO clients (name, phone) VALUES (%s, %s)
-    RETURNING id;
-    ''',(empty_to_none(item.get('name')), item['phone']))
+    cursor.execute(
+        '''
+        INSERT INTO clients (name, phone)
+        VALUES (%s, %s)
+        RETURNING id;
+        ''',
+        (
+            empty_to_none(item.get('name')),
+            item['phone']
+        )
+    )
 
     client_id = cursor.fetchone()
     return client_id['id']
 
+
 def create_test_address(cursor, client_uuid, item):
-    cursor.execute('''
-    INSERT INTO addresses(            
-        client_id,
-        street,
-        house,
-        floor,
-        entrance,
-        apartment,
-        comment
-    ) VALUES (%s, %s, %s, %s, %s, %s, %s)''',
-    (client_uuid,
-    item['street'],
-    item['house'],
-    empty_to_none(item.get('floor')),
-    empty_to_none(item.get('entrance')),
-    empty_to_none(item.get('apartment')),
-    empty_to_none(item.get('comment'))))
+    cursor.execute(
+        '''
+        INSERT INTO addresses(
+            client_id,
+            street,
+            house,
+            floor,
+            entrance,
+            apartment,
+            comment
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        ''',
+        (
+            client_uuid,
+            item['street'],
+            item['house'],
+            empty_to_none(item.get('floor')),
+            empty_to_none(item.get('entrance')),
+            empty_to_none(item.get('apartment')),
+            empty_to_none(item.get('comment'))
+        )
+    )
+
 
 def migrate_rows_on_test_db(cursor, data):
     client_key = {}
@@ -118,23 +156,29 @@ def migrate_rows_on_test_db(cursor, data):
             new_id = create_test_client(cursor, item)
             client_key[client_id] = new_id
 
-        create_test_address(cursor, client_key[client_id], item)
+        create_test_address(
+            cursor,
+            client_key[client_id],
+            item
+        )
+
     return {
-        "clients_created": len(client_key),
-        "addresses_created": len(data),
+        'clients_created': len(client_key),
+        'addresses_created': len(data),
     }
 
-def create_test_db():
 
+def create_test_db():
     data = load_test_data_json()
 
     create_database_if_not_exists()
 
+    run_migrations()
+
     with load_test_db() as db:
         with db.cursor() as cursor:
-            drop_tables_if_exist(cursor)
-            run_init_sql(cursor)
-            result = migrate_rows_on_test_db(cursor, data)
+            clear_test_data(cursor)
+            migrate_rows_on_test_db(cursor, data)
 
 
 def setup_test_database(monkeypatch):
@@ -145,16 +189,19 @@ def setup_test_database(monkeypatch):
 
     create_test_db()
 
-    DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
-    DB_PORT = int(os.getenv("DB_PORT", "5433"))
-    DB_USER = os.getenv("DB_USER", "postgres")
-    DB_PASSWORD = os.getenv("DB_PASSWORD", "localbase")
-    DB_NAME = os.getenv("DB_NAME", "assembly_assistant_x5_test")
+    DB_HOST = os.getenv('DB_HOST', '127.0.0.1')
+    DB_PORT = int(os.getenv('DB_PORT', '5433'))
+    DB_USER = os.getenv('DB_USER', 'postgres')
+    DB_PASSWORD = os.getenv('DB_PASSWORD', 'localbase')
+    DB_NAME = os.getenv(
+        'DB_NAME',
+        'assembly_assistant_x5_test'
+    )
 
     test_engine = create_engine(
-        f"postgresql+psycopg://"
-        f"{DB_USER}:{DB_PASSWORD}@"
-        f"{DB_HOST}:{DB_PORT}/{DB_NAME}"
+        f'postgresql+psycopg://'
+        f'{DB_USER}:{DB_PASSWORD}@'
+        f'{DB_HOST}:{DB_PORT}/{DB_NAME}'
     )
 
     TestSessionLocal = sessionmaker(bind=test_engine)

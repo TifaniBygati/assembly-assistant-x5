@@ -35,6 +35,8 @@ services:
 
     environment:
       POSTGRES_PASSWORD: localbase
+      POSTGRES_DB: assembly_assistant_x5_test
+
     networks:
       assembly_x5_tests:
 

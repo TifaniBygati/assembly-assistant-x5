@@ -2,15 +2,11 @@ import os
 import json
 
 import psycopg
-from psycopg import sql
 from psycopg.rows import dict_row
 
 from pathlib import Path
 
-
-
 SCRIPTS_DIR = Path(__file__).resolve().parent
-INIT_SQL = SCRIPTS_DIR / "init_postgresql.sql"
 SEED_PATH = SCRIPTS_DIR.resolve().parent / "seed" / "initial_clients.json"
 
 def get_db_name():
@@ -25,41 +21,6 @@ def db_connect():
         port=int(os.getenv('DB_PORT', '5433')),
         row_factory=dict_row
     )
-
-def admin_db_connect():
-    return psycopg.connect(
-        dbname=os.getenv('DB_ADMIN_NAME', 'template1'),
-        user=os.getenv('DB_USER', 'postgres'),
-        password=os.getenv('DB_PASSWORD', 'localbase'),
-        host=os.getenv('DB_HOST', '127.0.0.1'),
-        port=int(os.getenv('DB_PORT', '5433')),
-        row_factory=dict_row,
-        autocommit=True
-    )
-
-def create_database_if_not_exists():
-    database = get_db_name()
-    with admin_db_connect() as conn:
-        with conn.cursor() as cursor:
-
-            cursor.execute('''
-            SELECT 1 
-            FROM pg_database
-            WHERE datname = %s;
-            ''',
-            (
-            database,
-            )
-            )
-
-            result = cursor.fetchone()
-
-            if result is None:
-                cursor.execute(sql.SQL('CREATE DATABASE {};').format(sql.Identifier(database)))
-
-def run_init_sql(cursor):
-    init_sql = INIT_SQL.read_text(encoding='utf-8')
-    cursor.execute(init_sql)
 
 def empty_to_none(value):
     if value is None:
