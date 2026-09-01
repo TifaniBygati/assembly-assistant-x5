@@ -1,7 +1,5 @@
 from postgresql_utils import (
-    create_database_if_not_exists,
     db_connect,
-    run_init_sql,
     seed_rows,
     load_seed_data
     )
@@ -19,11 +17,8 @@ def database_is_empty(cursor):
                     row['addresses_exists']))
 
 def seed_postgresql():
-    create_database_if_not_exists()
     with db_connect() as db:
         with db.cursor() as cursor:
-
-            run_init_sql(cursor)
 
             if not database_is_empty(cursor):
                 print("Database is not empty. Seeding skipped")

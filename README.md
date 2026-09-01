@@ -1,111 +1,104 @@
 # assembly-assistant-x5
 
-Backend-проект на FastAPI для хранения клиентов и связанных с ними адресов доставки.
+Backend-приложение на FastAPI для хранения клиентов и связанных с ними адресов доставки.
 
-Проект создавался как учебный backend-проект и постепенно развивался от простого API с PostgreSQL до приложения с SQLAlchemy ORM, автоматическими тестами, Docker и CI/CD.
+Один клиент может иметь несколько адресов. Проект поддерживает CRUD-операции, поиск клиентов по адресу, валидацию данных, обработку ошибок и работу с PostgreSQL через SQLAlchemy ORM.
 
-## Возможности
+## Технологии
 
-- CRUD для клиентов
-- работа с несколькими адресами одного клиента
-- поиск клиентов по адресу
-- частичное обновление через PATCH
-- полное обновление через PUT
-- удаление клиента вместе со связанными адресами
-- проверка уникальности телефонного номера
-- обработка ошибок API
-- отдельная PostgreSQL-база для тестов
-
-## Стек
-
-- Python
+- Python 3.11
 - FastAPI
-- SQLAlchemy 2
 - PostgreSQL
-- psycopg 3
+- SQLAlchemy ORM
+- Alembic
 - Pydantic
+- psycopg 3
 - pytest
 - Docker
 - Docker Compose
 - GitHub Actions
 - GHCR
+- Uvicorn
 
-## Архитектура
+## Возможности API
 
-Основной поток запроса:
+API позволяет:
 
-HTTP request  
-→ FastAPI router  
-→ dependency injection  
-→ SQLAlchemy Session  
-→ service layer  
-→ PostgreSQL
-
-SQLAlchemy `Engine` создаётся один раз при запуске приложения.
-
-Для каждого HTTP-запроса FastAPI получает отдельную `Session` через `Depends(get_session)`. После завершения запроса Session закрывается.
-
-Service-функции получают готовую Session и не управляют её жизненным циклом самостоятельно.
-
-## Структура данных
-
-Основные сущности:
-
-### clients
-
-- `id`
-- `name`
-- `phone`
-
-### addresses
-
-- `id`
-- `client_id`
-- `street`
-- `house`
-- `floor`
-- `entrance`
-- `apartment`
-- `comment`
-
-Связь:
-
-`addresses.client_id → clients.id`
-
-Один клиент может иметь несколько адресов.
-
-Удаление клиента удаляет связанные адреса через PostgreSQL `ON DELETE CASCADE`.
-
-## API
+- получить список клиентов;
+- получить клиента по `id`;
+- найти клиентов по адресу;
+- создать клиента с адресом;
+- добавить новый адрес существующему клиенту;
+- частично обновить клиента;
+- полностью заменить данные клиента;
+- частично обновить адрес;
+- полностью заменить адрес;
+- удалить клиента вместе со всеми его адресами.
 
 Основные endpoints:
 
-`GET /clients` — получить всех клиентов
+```text
+GET    /clients
+GET    /clients/{client_id}
+GET    /clients/search
 
-`GET /clients/{client_id}` — получить клиента по id
+POST   /clients
 
-`GET /clients/search` — поиск клиентов по адресу
+PATCH  /clients/{client_id}
+PUT    /clients/{client_id}
 
-`POST /clients` — создать клиента или добавить адрес существующему клиенту
+PATCH  /clients/addresses/{address_id}
+PUT    /clients/addresses/{address_id}
 
-`PATCH /clients/{client_id}` — частично изменить клиента
+DELETE /clients/{client_id}
+```
 
-`PUT /clients/{client_id}` — полностью изменить клиента
+## Структура данных
 
-`PATCH /clients/addresses/{address_id}` — частично изменить адрес
+Проект использует PostgreSQL.
 
-`PUT /clients/addresses/{address_id}` — полностью изменить адрес
+Основные таблицы:
 
-`DELETE /clients/{client_id}` — удалить клиента
+### clients
 
-Swagger UI после запуска приложения:
+```text
+id
+name
+phone
+```
 
-`http://127.0.0.1:8000/docs`
+### addresses
 
-## Формат ответа
+```text
+id
+client_id
+street
+house
+floor
+entrance
+apartment
+comment
+```
 
-Клиент возвращается вместе со связанными адресами:
+Связь между таблицами:
 
+```text
+addresses.client_id -> clients.id
+```
+
+Один клиент может иметь несколько адресов.
+
+При удалении клиента связанные адреса удаляются через:
+
+```text
+ON DELETE CASCADE
+```
+
+Для `addresses.client_id` создан индекс.
+
+## Пример ответа API
+
+```json
 {
   "client_id": 1,
   "name": "Дима",
@@ -122,94 +115,312 @@ Swagger UI после запуска приложения:
     }
   ]
 }
+```
 
-## Обработка ошибок
+## PostgreSQL
 
-API обрабатывает основные негативные сценарии:
+Для локальной разработки используется база:
 
-- `400` — некорректные данные
-- `404` — клиент или адрес не найден
-- `409` — конфликт уникальности телефона
-- `422` — ошибка валидации FastAPI / Pydantic
+```text
+assembly_assistant_x5_dev
+```
 
-## Тестирование
+Для тестов:
 
-Проект покрыт автоматическими тестами через pytest.
+```text
+assembly_assistant_x5_test
+```
 
-Сейчас тестовый набор содержит 34 теста.
+Настройки подключения задаются через переменные окружения:
 
-Проверяются:
+```text
+DB_HOST
+DB_PORT
+DB_USER
+DB_PASSWORD
+DB_NAME
+```
 
-- health endpoint
-- GET endpoints
-- поиск клиентов
-- POST
-- PATCH
-- PUT
-- DELETE
-- негативные сценарии
-- response helpers
+## Миграции Alembic
 
-Тесты используют отдельную PostgreSQL-базу:
+Структура базы данных управляется через Alembic.
 
-`assembly_assistant_x5_test`
+ORM-модели описывают желаемую схему приложения, а migration-файлы хранят историю изменений структуры базы.
 
-FastAPI dependency `get_session` во время тестов подменяется тестовой dependency через `app.dependency_overrides`.
+Применить все миграции до актуальной версии:
 
-## Docker
+```bash
+alembic upgrade head
+```
 
-Проект поддерживает отдельные Docker-конфигурации для разработки, тестирования и production.
+Посмотреть текущую revision базы:
 
-Тесты могут запускаться в отдельном Docker-контейнере вместе с отдельным PostgreSQL-сервисом через Docker Compose.
+```bash
+alembic current
+```
 
-Внутри Compose сервисы взаимодействуют через внутреннюю Docker network.
+Посмотреть историю миграций:
 
-## CI/CD
+```bash
+alembic history
+```
 
-GitHub Actions автоматически:
+Также миграции можно применить через вспомогательный скрипт:
 
-1. запускает контейнерные тесты для pull request;
-2. собирает Docker image;
-3. публикует production image в GitHub Container Registry;
-4. маркирует image тегами `latest` и commit SHA;
-5. выполняет автоматический deployment на VDS.
+```bash
+python scripts/init_postgresql.py
+```
 
-Изменения в `main` проходят через pull request workflow.
-
-## Локальный запуск
-
-Установить зависимости:
-
-pip install -r requirements.txt
-
-Запустить FastAPI:
-
-uvicorn app.main:app --reload
-
-Также проект поддерживает запуск через Docker Compose.
-
-## Конфигурация
-
-Подключение к PostgreSQL задаётся через переменные окружения:
-
-- `DB_HOST`
-- `DB_PORT`
-- `DB_USER`
-- `DB_PASSWORD`
-- `DB_NAME`
-
-Пример конфигурации находится в `.env.example`.
+Скрипт предполагает, что сама PostgreSQL database уже существует.
 
 ## Seed-данные
 
-Seed-данные клиентов и адресов хранятся отдельно от application-кода.
+Начальные данные хранятся в:
 
-Для подготовки dev-базы используются вспомогательные PostgreSQL scripts.
+```text
+seed/initial_clients.json
+```
 
-## Статус проекта
+Для загрузки seed-данных в уже подготовленную базу:
 
-Проект активно развивается.
+```bash
+python scripts/seed_postgresql.py
+```
 
-Реализованы FastAPI REST API, PostgreSQL, SQLAlchemy ORM, автоматические тесты, контейнеризация и CI/CD.
+Скрипт подключается к уже подготовленной базе данных и загружает начальные данные, если база ещё не заполнена.
 
-Следующий этап развития проекта — управление изменениями схемы PostgreSQL через Alembic.
+## Сброс dev-данных
+
+Для очистки данных и повторной загрузки seed-набора в PowerShell:
+
+```powershell
+$env:ALLOW_DB_RESET="true"
+python scripts/reset_and_seed_postgresql.py
+```
+
+Скрипт:
+
+```text
+очищает clients и addresses
+        ↓
+сбрасывает значения identity
+        ↓
+сохраняет структуру базы
+        ↓
+повторно загружает seed-данные
+```
+
+Структура базы при этом не пересоздаётся и остаётся под управлением Alembic.
+
+Без:
+
+```text
+ALLOW_DB_RESET=true
+```
+
+сброс базы блокируется.
+
+## Запуск приложения
+
+Локальный запуск:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Swagger UI:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+Health endpoint:
+
+```text
+GET /health
+```
+
+## Docker
+
+Проект поддерживает запуск через Docker Compose.
+
+```bash
+docker compose up
+```
+
+Compose поднимает:
+
+```text
+PostgreSQL
++
+FastAPI application
+```
+
+При первой инициализации PostgreSQL создаёт database через переменную:
+
+```text
+POSTGRES_DB
+```
+
+После создания database структура должна быть приведена к актуальной версии через Alembic.
+
+## Тесты
+
+Проект покрыт тестами через `pytest`.
+
+Локальный запуск:
+
+```bash
+pytest
+```
+
+Текущий набор содержит:
+
+```text
+34 tests
+```
+
+Тесты проверяют:
+
+- health endpoint;
+- получение клиентов;
+- получение клиента по `id`;
+- поиск по адресу;
+- создание клиента;
+- обновление клиента;
+- обновление адреса;
+- удаление клиента;
+- обработку несуществующих ресурсов;
+- некорректные payload;
+- конфликты уникальности;
+- валидацию входных данных;
+- вспомогательную логику формирования API-ответов.
+
+Перед тестами используется отдельная база:
+
+```text
+assembly_assistant_x5_test
+```
+
+Тестовый setup:
+
+```text
+создаёт test database при необходимости
+        ↓
+Alembic upgrade head
+        ↓
+очищает тестовые данные
+        ↓
+загружает тестовый набор
+        ↓
+запускает тест
+```
+
+Таким образом тестовая схема создаётся теми же Alembic-миграциями, которые используются для dev и production.
+
+## Тесты в Docker
+
+Тестовый Docker image содержит:
+
+```text
+app/
+tests/
+scripts/
+alembic/
+alembic.ini
+```
+
+Запуск:
+
+```bash
+docker compose -f compose.test.yaml up
+```
+
+Успешный прогон:
+
+```text
+34 passed
+```
+
+## Обработка ошибок
+
+API использует стандартные HTTP-коды:
+
+```text
+400 -> некорректные данные
+404 -> клиент или адрес не найден
+409 -> конфликт уникальности
+422 -> ошибка валидации FastAPI / Pydantic
+```
+
+Примеры ответов:
+
+```json
+{"detail": "client_not_found"}
+```
+
+```json
+{"detail": "address_not_found"}
+```
+
+```json
+{"detail": "no_update_fields"}
+```
+
+```json
+{"detail": "invalid_phone"}
+```
+
+```json
+{"detail": "invalid_street"}
+```
+
+```json
+{"detail": "invalid_house"}
+```
+
+```json
+{"detail": "phone_already_exists"}
+```
+
+## CI/CD
+
+GitHub Actions используется для проверки, публикации и развёртывания проекта.
+
+Pipeline включает:
+
+```text
+build Docker image
+        ↓
+container tests
+        ↓
+publish image to GHCR
+        ↓
+deploy to VDS
+```
+
+Production image публикуется в GitHub Container Registry.
+
+Deployment выполняется на VDS через SSH.
+
+Перед запуском новой версии приложения production-база должна быть приведена к актуальной revision через:
+
+```bash
+alembic upgrade head
+```
+
+## Текущий статус
+
+Проект переведён с ручного создания PostgreSQL-схемы на SQLAlchemy ORM и Alembic.
+
+Схема базы для:
+
+```text
+development
+testing
+production
+```
+
+управляется единым набором migration-файлов.
+
+Тесты выполняются как локально, так и внутри Docker-контейнера.

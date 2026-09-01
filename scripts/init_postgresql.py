@@ -1,15 +1,22 @@
-from postgresql_utils import (
-    create_database_if_not_exists,
-    db_connect,
-    run_init_sql
-    )
+from alembic import command
+from alembic.config import Config
+
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
 def init_postgresql():
-    create_database_if_not_exists()
+    alembic_config = Config(
+        str(PROJECT_ROOT / "alembic.ini"),
+    )
 
-    with db_connect() as connection:
-        with connection.cursor() as cursor:
-            run_init_sql(cursor)
+    command.upgrade(
+        alembic_config,
+        "head"
+    )
 
-    print("PostgreSQL database initialized")
+    print("PostgreSQL schema initialized")
+
 if __name__ == "__main__":
     init_postgresql()

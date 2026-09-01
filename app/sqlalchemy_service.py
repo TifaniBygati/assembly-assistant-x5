@@ -5,7 +5,7 @@ from sqlalchemy.orm import (
     relationship,
     Session,
     joinedload,
-    contains_eager
+    contains_eager,
 
 )
 
@@ -14,7 +14,8 @@ from sqlalchemy import (
     CheckConstraint,
     ForeignKey,
     create_engine,
-    select
+    select,
+    Index
 )
 
 import os
@@ -52,6 +53,9 @@ class Client(Base):
 
 class Address(Base):
     __tablename__ = 'addresses'
+    __table_args__ = (
+        Index("addresses_client_id_idx", "client_id"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
