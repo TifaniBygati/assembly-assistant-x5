@@ -1,17 +1,57 @@
 # assembly-assistant-x5
 
-FastAPI-проект для хранения клиентов и адресов доставки.
+Backend-приложение на FastAPI для хранения клиентов и связанных с ними адресов доставки.
 
-Проект хранит клиентов, их телефоны и связанные адреса. Один клиент может иметь несколько адресов.
+Один клиент может иметь несколько адресов. Проект поддерживает CRUD-операции, поиск клиентов по адресу, валидацию данных, обработку ошибок и работу с PostgreSQL через SQLAlchemy ORM.
 
 ## Технологии
 
-- Python
+- Python 3.11
 - FastAPI
 - PostgreSQL
+- SQLAlchemy ORM
+- Alembic
+- Pydantic
 - psycopg 3
 - pytest
+- Docker
+- Docker Compose
+- GitHub Actions
+- GHCR
 - Uvicorn
+
+## Возможности API
+
+API позволяет:
+
+- получить список клиентов;
+- получить клиента по `id`;
+- найти клиентов по адресу;
+- создать клиента с адресом;
+- добавить новый адрес существующему клиенту;
+- частично обновить клиента;
+- полностью заменить данные клиента;
+- частично обновить адрес;
+- полностью заменить адрес;
+- удалить клиента вместе со всеми его адресами.
+
+Основные endpoints:
+
+```text
+GET    /clients
+GET    /clients/{client_id}
+GET    /clients/search
+
+POST   /clients
+
+PATCH  /clients/{client_id}
+PUT    /clients/{client_id}
+
+PATCH  /clients/addresses/{address_id}
+PUT    /clients/addresses/{address_id}
+
+DELETE /clients/{client_id}
+```
 
 ## Структура данных
 
@@ -19,22 +59,28 @@ FastAPI-проект для хранения клиентов и адресов 
 
 Основные таблицы:
 
-- `clients` — данные клиента:
-  - `id`
-  - `name`
-  - `phone`
+### clients
 
-- `addresses` — адреса клиента:
-  - `id`
-  - `client_id`
-  - `street`
-  - `house`
-  - `floor`
-  - `entrance`
-  - `apartment`
-  - `comment`
+```text
+id
+name
+phone
+```
 
-Связь:
+### addresses
+
+```text
+id
+client_id
+street
+house
+floor
+entrance
+apartment
+comment
+```
+
+Связь между таблицами:
 
 ```text
 addresses.client_id -> clients.id
@@ -42,13 +88,15 @@ addresses.client_id -> clients.id
 
 Один клиент может иметь несколько адресов.
 
-При удалении клиента его адреса удаляются автоматически через `ON DELETE CASCADE`.
+При удалении клиента связанные адреса удаляются через:
 
-## Формат ответа API
+```text
+ON DELETE CASCADE
+```
 
-API возвращает клиентов в сгруппированном формате.
+Для `addresses.client_id` создан индекс.
 
-Пример клиента:
+## Пример ответа API
 
 ```json
 {
@@ -69,69 +117,112 @@ API возвращает клиентов в сгруппированном фо
 }
 ```
 
-Контракт ответов:
+## PostgreSQL
 
-```text
-GET /clients                          -> list[client]
-GET /clients/{client_id}              -> client
-GET /clients/search                   -> list[client]
-POST /clients                         -> client
-PATCH /clients/{client_id}            -> client
-PUT /clients/{client_id}              -> client
-PATCH /clients/addresses/{address_id} -> client
-PUT /clients/addresses/{address_id}   -> client
-DELETE /clients/{client_id}           -> {"deleted_client_id": id}
-```
-
-## Данные
-
-`data/database.json` используется как seed-файл для первичного заполнения базы.
-
-Файл содержит исходные данные клиентов и адресов.
-
-Поле `order_id` может присутствовать в JSON, но в текущей PostgreSQL-схеме не используется.
-
-## Настройка PostgreSQL
-
-Для разработки используется база:
+Для локальной разработки используется база:
 
 ```text
 assembly_assistant_x5_dev
 ```
 
-Для тестов используется база:
+Для тестов:
 
 ```text
 assembly_assistant_x5_test
 ```
 
-Имя базы можно переопределить через переменную окружения:
-
-```bash
-DB_NAME=assembly_assistant_x5_dev
-```
-
-## Создание таблиц
-
-SQL-схема находится в файле:
+Настройки подключения задаются через переменные окружения:
 
 ```text
-scripts/init_postgresql.sql
+DB_HOST
+DB_PORT
+DB_USER
+DB_PASSWORD
+DB_NAME
 ```
 
-Скрипт создаёт таблицы `clients` и `addresses`, а также индекс для связи адресов с клиентами.
+## Миграции Alembic
 
-## Миграция данных из JSON в PostgreSQL
+Структура базы данных управляется через Alembic.
 
-Для заполнения dev-базы из `data/database.json` используется скрипт:
+ORM-модели описывают желаемую схему приложения, а migration-файлы хранят историю изменений структуры базы.
+
+Применить все миграции до актуальной версии:
 
 ```bash
+alembic upgrade head
+```
+
+Посмотреть текущую revision базы:
+
+```bash
+alembic current
+```
+
+Посмотреть историю миграций:
+
+```bash
+alembic history
+```
+
+Также миграции можно применить через вспомогательный скрипт:
+
+```bash
+python scripts/init_postgresql.py
+```
+
+Скрипт предполагает, что сама PostgreSQL database уже существует.
+
+## Seed-данные
+
+Начальные данные хранятся в:
+
+```text
+seed/initial_clients.json
+```
+
+Для загрузки seed-данных в уже подготовленную базу:
+
+```bash
+python scripts/seed_postgresql.py
+```
+
+Скрипт подключается к уже подготовленной базе данных и загружает начальные данные, если база ещё не заполнена.
+
+## Сброс dev-данных
+
+Для очистки данных и повторной загрузки seed-набора в PowerShell:
+
+```powershell
+$env:ALLOW_DB_RESET="true"
 python scripts/reset_and_seed_postgresql.py
 ```
 
-Скрипт создаёт нужную базу при необходимости, пересоздаёт таблицы и загружает seed-данные.
+Скрипт:
 
-## Запуск сервера
+```text
+очищает clients и addresses
+        ↓
+сбрасывает значения identity
+        ↓
+сохраняет структуру базы
+        ↓
+повторно загружает seed-данные
+```
+
+Структура базы при этом не пересоздаётся и остаётся под управлением Alembic.
+
+Без:
+
+```text
+ALLOW_DB_RESET=true
+```
+
+сброс базы блокируется.
+
+## Запуск приложения
+
+Локальный запуск:
 
 ```bash
 uvicorn app.main:app --reload
@@ -143,31 +234,126 @@ Swagger UI:
 http://127.0.0.1:8000/docs
 ```
 
-## Основные возможности API
+Health endpoint:
 
-- получить всех клиентов
-- получить клиента по id
-- найти клиентов по адресу
-- создать клиента и адрес
-- добавить новый адрес существующему клиенту по телефону
-- частично обновить клиента
-- частично обновить адрес
-- полностью заменить данные клиента
-- полностью заменить адрес
-- удалить клиента вместе с его адресами
+```text
+GET /health
+```
+
+## Docker
+
+Проект поддерживает запуск через Docker Compose.
+
+```bash
+docker compose up
+```
+
+Compose поднимает:
+
+```text
+PostgreSQL
++
+FastAPI application
+```
+
+При первой инициализации PostgreSQL создаёт database через переменную:
+
+```text
+POSTGRES_DB
+```
+
+После создания database структура должна быть приведена к актуальной версии через Alembic.
+
+## Тесты
+
+Проект покрыт тестами через `pytest`.
+
+Локальный запуск:
+
+```bash
+pytest
+```
+
+Текущий набор содержит:
+
+```text
+34 tests
+```
+
+Тесты проверяют:
+
+- health endpoint;
+- получение клиентов;
+- получение клиента по `id`;
+- поиск по адресу;
+- создание клиента;
+- обновление клиента;
+- обновление адреса;
+- удаление клиента;
+- обработку несуществующих ресурсов;
+- некорректные payload;
+- конфликты уникальности;
+- валидацию входных данных;
+- вспомогательную логику формирования API-ответов.
+
+Перед тестами используется отдельная база:
+
+```text
+assembly_assistant_x5_test
+```
+
+Тестовый setup:
+
+```text
+создаёт test database при необходимости
+        ↓
+Alembic upgrade head
+        ↓
+очищает тестовые данные
+        ↓
+загружает тестовый набор
+        ↓
+запускает тест
+```
+
+Таким образом тестовая схема создаётся теми же Alembic-миграциями, которые используются для dev и production.
+
+## Тесты в Docker
+
+Тестовый Docker image содержит:
+
+```text
+app/
+tests/
+scripts/
+alembic/
+alembic.ini
+```
+
+Запуск:
+
+```bash
+docker compose -f compose.test.yaml up
+```
+
+Успешный прогон:
+
+```text
+34 passed
+```
 
 ## Обработка ошибок
 
-API возвращает понятные ошибки:
+API использует стандартные HTTP-коды:
 
 ```text
-400 -> некорректные данные запроса
+400 -> некорректные данные
 404 -> клиент или адрес не найден
-409 -> конфликт уникальности телефона
+409 -> конфликт уникальности
 422 -> ошибка валидации FastAPI / Pydantic
 ```
 
-Примеры `detail`:
+Примеры ответов:
 
 ```json
 {"detail": "client_not_found"}
@@ -197,61 +383,44 @@ API возвращает понятные ошибки:
 {"detail": "phone_already_exists"}
 ```
 
-## Тесты
+## CI/CD
 
-Проект покрыт тестами через `pytest`.
+GitHub Actions используется для проверки, публикации и развёртывания проекта.
 
-Запуск всех тестов:
+Pipeline включает:
+
+```text
+build Docker image
+        ↓
+container tests
+        ↓
+publish image to GHCR
+        ↓
+deploy to VDS
+```
+
+Production image публикуется в GitHub Container Registry.
+
+Deployment выполняется на VDS через SSH.
+
+Перед запуском новой версии приложения production-база должна быть приведена к актуальной revision через:
 
 ```bash
-pytest
+alembic upgrade head
 ```
 
-Тесты проверяют:
+## Текущий статус
 
-- health endpoint
-- получение клиентов
-- получение клиента по id
-- поиск по адресу
-- создание клиента
-- обновление клиента
-- обновление адреса
-- удаление клиента
-- негативные сценарии
-- группировку плоских SQL-строк в клиентский response format
+Проект переведён с ручного создания PostgreSQL-схемы на SQLAlchemy ORM и Alembic.
 
-Тестовая база:
+Схема базы для:
 
 ```text
-assembly_assistant_x5_test
+development
+testing
+production
 ```
 
-Перед тестами база пересоздаётся и заполняется тестовыми данными.
+управляется единым набором migration-файлов.
 
-## Helper для группировки ответов
-
-SQL-запросы после `JOIN` возвращают плоские строки.
-
-Например:
-
-```text
-client_id | name | phone | address_id | street | house
-```
-
-Для API эти строки группируются в структуру:
-
-```text
-client -> addresses[]
-```
-
-Для этого используется helper:
-
-```text
-group_clients_with_addresses
-```
-
-Он принимает список плоских строк и возвращает список клиентов с вложенными адресами.
-
-## Текущий статус проекта
-
-Проект использует PostgreSQL, покрыт тестами через `pytest` и возвращает клиентов в сгруппированном формате: клиент с вложенным списком адресов `addresses`.
+Тесты выполняются как локально, так и внутри Docker-контейнера.
